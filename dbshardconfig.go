@@ -30,7 +30,7 @@ type DBAtom struct {
 	IsMaster bool //default: false
 }
 
-var DBAtomRepository [string]*DBAtom
+var DBAtomRepository map[string]*DBAtom
 
 type DBGroup struct {
 	MasterDBAtomkey string
@@ -38,13 +38,13 @@ type DBGroup struct {
 	SlaveSum        uint
 }
 
-var DBGroupRepository [string]*DBGroup
+var DBGroupRepository map[string]*DBGroup
 
 type DBScaleOutScheme struct {
 	TableShardkey string
-	DBGroupSum    uint           //to be mod for DBGroup.
-	TablePerDB    uint           //to be mod for real table name.
-	DBGroupKeys   [string]string //key: unique hash number to identiy a db group, value: DBGroupKey
+	DBGroupSum    uint              //to be mod for DBGroup.
+	TablePerDB    uint              //to be mod for real table name.
+	DBGroupKeys   map[string]string //key: unique hash number to identiy a db group, value: DBGroupKey
 }
 
-var DBScaleOutSchemeRepository [string]*DBScaleOutScheme //key: dbname + tablename
+var DBScaleOutSchemeRepository map[string]*DBScaleOutScheme //key: dbname + tablename
