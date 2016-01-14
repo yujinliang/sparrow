@@ -17,6 +17,12 @@ limitations under the License.
 */
 package sparrow
 
+import (
+	"errors"
+	"fmt"
+	"strconv"
+)
+
 //with it , caller must construct db connection , and sql execution and so on.
 type DBShardInfo struct {
 	DBNode    *DBAtom
@@ -31,14 +37,73 @@ type Sparrow struct {
 //get db shard config for remote config center.
 func (s *Sparrow) Initialize(cfgEndpoints []string) error {
 
+	//db group1
+	DBAtomRepository = make(map[string]*DBAtom)
+	DBAtomRepository["192.168.1.1:8080"] = &DBAtom{Ip: "192.168.1.1", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 10, DBEnable: true, IsMaster: true}
+	DBAtomRepository["192.168.1.2:8080"] = &DBAtom{Ip: "192.168.1.2", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 8, DBEnable: true, IsMaster: false}
+	DBAtomRepository["192.168.1.3:8080"] = &DBAtom{Ip: "192.168.1.3", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 8, DBEnable: true, IsMaster: false}
+	//db group2
+	DBAtomRepository["192.168.1.4:8080"] = &DBAtom{Ip: "192.168.1.4", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 10, DBEnable: true, IsMaster: true}
+	DBAtomRepository["192.168.1.5:8080"] = &DBAtom{Ip: "192.168.1.5", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 8, DBEnable: true, IsMaster: false}
+	DBAtomRepository["192.168.1.6:8080"] = &DBAtom{Ip: "192.168.1.6", Port: 8080, DBUser: "user", DBPwd: "123", DBFactor: 8, DBEnable: true, IsMaster: false}
+	//db group map
+	DBGroupRepository = make(map[string]*DBGroup)
+	DBGroupRepository["g1"] = &DBGroup{MasterDBAtomkey: "192.168.1.1:8080", SlaveDBAtomKeys: []string{"192.168.1.2:8080", "192.168.1.3:8080"}, SlaveSum: 2}
+	DBGroupRepository["g2"] = &DBGroup{MasterDBAtomkey: "192.168.1.4:8080", SlaveDBAtomKeys: []string{"192.168.1.5:8080", "192.168.1.6:8080"}, SlaveSum: 2}
+	//db scale out scheme map
+	DBScaleOutSchemeRepository = make(map[string]*DBScaleOutScheme)
+	DBScaleOutSchemeRepository["db"+"table"] = &DBScaleOutScheme{TableShardkey: "user_id", DBGroupSum: 2, TablePerDB: 4, DBGroupKeys: map[string]string{"0": "g1", "1": "g2"}}
 	return nil
 
 }
 
 //when match case :shardKey == ? or shardKey != ?, then run this method, coz just only choose one db node to execute sql.
 //use this method on 99.99%.
-func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, forceMaster bool, isWrite bool) (*DBShardInfo, error) {
+func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, shardValue string, forceMaster bool, isWrite bool) (*DBShardInfo, error) {
 
+	if len(dbName) <= 0 {
+		return nil, errors.New("DB Name Empty!")
+	}
+	if len(tableName) <= 0 {
+		return nil, errors.New("Table Name Empty!")
+	}
+	if len(shardKey) <= 0 {
+		return nil, errors.New("Shard Key Empty!")
+	}
+	if len(shardValue) <= 0 {
+		return nil, errors.New("Shard Value Empty!")
+	}
+	//TODO: check initialization is done?
+	db_shard_scheme := DBScaleOutSchemeRepository[dbName+tableName]
+	if db_shard_scheme == nil {
+		return nil, errors.New("DB Shard Scheme NOT Exist!")
+	}
+	if shardKey != db_shard_scheme.TableShardkey {
+		return nil, errors.New("DB Shard Key NOT Match!")
+	}
+	if db_shard_scheme.DBGroupSum <= 0 {
+		return nil, errors.New("NO DB Node!")
+	}
+	//lookup the db group, just mod.
+	shardNumber := hashString2Number(shardValue)
+	group_index := shardNumber % uint64(db_shard_scheme.DBGroupSum)
+	group_key := strconv.FormatUint(uint64(group_index), 10)
+	db_group := DBGroupRepository[group_key]
+	if db_group == nil {
+		return nil, errors.New("DB Group No Exists!")
+	}
+	if forceMaster || isWrite {
+		db_node := DBAtomRepository[db_group.MasterDBAtomkey]
+		table_index := shardNumber % uint64(db_shard_scheme.TablePerDB)
+		real_table := tableName + strconv.FormatUint(uint64(table_index), 10)
+		db_info := &DBShardInfo{DBNode: db_node, DBName: dbName, TableName: real_table}
+		//--
+		fmt.Printf("db shard info:%v", db_info)
+		return db_info, nil
+
+	} else {
+
+	}
 	return nil, nil
 }
 

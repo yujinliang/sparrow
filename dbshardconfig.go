@@ -44,7 +44,7 @@ type DBScaleOutScheme struct {
 	TableShardkey string
 	DBGroupSum    uint              //to be mod for DBGroup.
 	TablePerDB    uint              //to be mod for real table name.
-	DBGroupKeys   map[string]string //key: unique hash number to identiy a db group, value: DBGroupKey
+	DBGroupKeys   map[string]string //key: unique number to identiy a db group for shard mod match, value: DBGroupKey
 }
 
 var DBScaleOutSchemeRepository map[string]*DBScaleOutScheme //key: dbname + tablename
