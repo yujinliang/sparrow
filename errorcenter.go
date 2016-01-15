@@ -16,3 +16,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package sparrow
+
+import (
+	"errors"
+)
+
+var ErrDBNameEmpty = errors.New("DB Name Empty")
+var ErrTableNameEmpty = errors.New("Table Name Empty")
+var ErrDbShardKeyEmpty = errors.New("Shard Key Empty")
+var ErrDbShardValueEmpty = errors.New("Shard Value Empty")
+var ErrDbShardSchemeNotExist = errors.New("DB Shard Scheme Not Exist")
+var ErrDbShardKeyNotMatch = errors.New("DB Shard Key NOT Match")
+var ErrDbShardSchemeDbGroupEmpty = errors.New("DB Shard Scheme`s DB Group is Empty")
+var ErrDbGroupNotExist = errors.New("DB Group Not Exists")
+var ErrMasterDBKO = errors.New("Master DB KO")
+var ErrSlaveDbOfDbGroupNotExits = errors.New("Slave DB Not Exists")
+var ErrAllSlaveDbOfDbGroupKO = errors.New("Slave DB All KO")

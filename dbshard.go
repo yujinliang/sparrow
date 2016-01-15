@@ -18,7 +18,6 @@ limitations under the License.
 package sparrow
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -62,27 +61,27 @@ func (s *Sparrow) Initialize(cfgEndpoints []string) error {
 func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, shardValue string, forceMaster bool, isWrite bool) (*DBShardInfo, error) {
 
 	if len(dbName) <= 0 {
-		return nil, errors.New("DB Name Empty!")
+		return nil, ErrDBNameEmpty
 	}
 	if len(tableName) <= 0 {
-		return nil, errors.New("Table Name Empty!")
+		return nil, ErrTableNameEmpty
 	}
 	if len(shardKey) <= 0 {
-		return nil, errors.New("Shard Key Empty!")
+		return nil, ErrDbShardKeyEmpty
 	}
 	if len(shardValue) <= 0 {
-		return nil, errors.New("Shard Value Empty!")
+		return nil, ErrDbShardValueEmpty
 	}
 	//TODO: check initialization is done?
 	dbShardScheme := DBScaleOutSchemeRepository[dbName+tableName]
 	if dbShardScheme == nil {
-		return nil, errors.New("DB Shard Scheme NOT Exist!")
+		return nil, ErrDbShardSchemeNotExist
 	}
 	if shardKey != dbShardScheme.TableShardkey {
-		return nil, errors.New("DB Shard Key NOT Match!")
+		return nil, ErrDbShardKeyNotMatch
 	}
 	if dbShardScheme.DBGroupSum <= 0 {
-		return nil, errors.New("NO DB Node!")
+		return nil, ErrDbShardSchemeDbGroupEmpty
 	}
 	//lookup the db group, just mod.
 	shardNumber := hashString2Number(shardValue)
@@ -90,7 +89,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	groupKey := strconv.FormatUint(uint64(groupIndex), 10)
 	dbGroup := DBGroupRepository[groupKey]
 	if dbGroup == nil {
-		return nil, errors.New("DB Group No Exists!")
+		return nil, ErrDbGroupNotExist
 	}
 
 	var dbNode *DBAtom = nil
@@ -99,7 +98,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
 		if !dbNode.DBEnable {
 
-			return nil, errors.New("Master DB KO!")
+			return nil, ErrMasterDBKO
 		}
 
 	} else {
@@ -141,13 +140,13 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 
 		} else {
 
-			return nil, errors.New("Slave DB No Exists!")
+			return nil, ErrSlaveDbOfDbGroupNotExits
 		}
 	}
 
 	if !dbNode.DBEnable {
 
-		return nil, errors.New("Slave DB All KO!")
+		return nil, ErrAllSlaveDbOfDbGroupKO
 	}
 	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
 	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
