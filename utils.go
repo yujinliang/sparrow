@@ -38,3 +38,55 @@ func randIntRange(min int, max int) int {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return min + rand.Intn(max-min)
 }
+
+func lookUpSlaveOfDBGroup(dbGroup *DBGroup) (*DBAtom, error) {
+
+	var dbNode *DBAtom = nil
+	if dbGroup.SlaveSum > 0 && len(dbGroup.SlaveDBAtomKeys) > 0 {
+
+		dbNodeIndex := randIntRange(0, int(dbGroup.SlaveSum))
+		nextDBNodeIndex := 0
+		dbNodeKey := dbGroup.SlaveDBAtomKeys[dbNodeIndex]
+		dbNode = DBAtomRepository[dbNodeKey]
+		if !dbNode.DBEnable {
+
+			distanceOfMax := dbGroup.SlaveSum - uint(dbNodeIndex)
+			if (float32(distanceOfMax) / float32(dbGroup.SlaveSum)) > randRangePoint {
+
+				nextDBNodeIndex = randIntRange(0, int(dbNodeIndex))
+
+			} else {
+
+				nextDBNodeIndex = randIntRange(int(dbNodeIndex), int(dbGroup.SlaveSum))
+			}
+			dbNodeKey = dbGroup.SlaveDBAtomKeys[nextDBNodeIndex]
+			dbNode = DBAtomRepository[dbNodeKey]
+			if !dbNode.DBEnable {
+				//choose ajacent slave node.
+				for i := 0; i < int(dbGroup.SlaveSum); i++ {
+					if i == dbNodeIndex || i == nextDBNodeIndex {
+						continue
+					}
+					dbNodeKey = dbGroup.SlaveDBAtomKeys[i]
+					dbNode = DBAtomRepository[dbNodeKey]
+					if dbNode.DBEnable {
+						break
+					}
+				}
+
+			}
+		}
+
+	} else {
+
+		return nil, ErrSlaveDbOfDbGroupNotExits
+	}
+
+	if !dbNode.DBEnable {
+
+		return nil, ErrAllSlaveDbOfDbGroupKO
+	}
+
+	return dbNode, nil
+
+}

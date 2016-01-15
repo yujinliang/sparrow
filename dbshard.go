@@ -18,6 +18,7 @@ limitations under the License.
 package sparrow
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -96,6 +97,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	}
 
 	var dbNode *DBAtom = nil
+	var err error = nil
 	if forceMaster || isWrite {
 
 		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
@@ -106,51 +108,15 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 
 	} else {
 
-		if dbGroup.SlaveSum > 0 && len(dbGroup.SlaveDBAtomKeys) > 0 {
+		dbNode, err = lookUpSlaveOfDBGroup(dbGroup)
+		if err != nil {
 
-			dbNodeIndex := randIntRange(0, int(dbGroup.SlaveSum))
-			nextDBNodeIndex := 0
-			dbNodeKey := dbGroup.SlaveDBAtomKeys[dbNodeIndex]
-			dbNode = DBAtomRepository[dbNodeKey]
-			if !dbNode.DBEnable {
+			return nil, err
 
-				distanceOfMax := dbGroup.SlaveSum - uint(dbNodeIndex)
-				if (float32(distanceOfMax) / float32(dbGroup.SlaveSum)) > randRangePoint {
-
-					nextDBNodeIndex = randIntRange(0, int(dbNodeIndex))
-
-				} else {
-
-					nextDBNodeIndex = randIntRange(int(dbNodeIndex), int(dbGroup.SlaveSum))
-				}
-				dbNodeKey = dbGroup.SlaveDBAtomKeys[nextDBNodeIndex]
-				dbNode = DBAtomRepository[dbNodeKey]
-				if !dbNode.DBEnable {
-					//choose ajacent slave node.
-					for i := 0; i < int(dbGroup.SlaveSum); i++ {
-						if i == dbNodeIndex || i == nextDBNodeIndex {
-							continue
-						}
-						dbNodeKey = dbGroup.SlaveDBAtomKeys[i]
-						dbNode = DBAtomRepository[dbNodeKey]
-						if dbNode.DBEnable {
-							break
-						}
-					}
-
-				}
-			}
-
-		} else {
-
-			return nil, ErrSlaveDbOfDbGroupNotExits
 		}
+
 	}
 
-	if !dbNode.DBEnable {
-
-		return nil, ErrAllSlaveDbOfDbGroupKO
-	}
 	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
 	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
 	dbInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
@@ -164,7 +130,60 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 //regarding complex search , must use search engine , like: solr.
 func (s *Sparrow) Route2DBs(dbName string, tableName string, shardKey string, forceMaster bool, isWrite bool) ([]*DBShardInfo, error) {
 
-	return nil, nil
+	if len(dbName) <= 0 {
+		return nil, ErrDBNameEmpty
+	}
+	if len(tableName) <= 0 {
+		return nil, ErrTableNameEmpty
+	}
+	if len(shardKey) <= 0 {
+		return nil, ErrDbShardKeyEmpty
+	}
+	dbShardScheme := DBScaleOutSchemeRepository[dbName+tableName]
+	if dbShardScheme == nil {
+		return nil, ErrDbShardSchemeNotExist
+	}
+	if shardKey != dbShardScheme.TableShardkey {
+		return nil, ErrDbShardKeyNotMatch
+	}
+	if dbShardScheme.DBGroupSum <= 0 {
+		return nil, ErrDbShardSchemeDbGroupEmpty
+	}
+
+	var dbInfos []*DBShardInfo = nil
+	if forceMaster || isWrite {
+
+		for _, v := range dbShardScheme.DBGroupKeys {
+
+			dbGroup := DBGroupRepository[v]
+			if dbGroup == nil {
+
+				return nil, ErrDbGroupNotExist
+			}
+			dbNode := DBAtomRepository[dbGroup.MasterDBAtomkey]
+			if dbNode == nil {
+
+				return nil, ErrMasterDBKO
+
+			}
+			for i := 0; i < int(dbShardScheme.TablePerDB); i++ {
+
+				realTableName := tableName + strconv.FormatUint(uint64(i), 10)
+				shardInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
+				dbInfos = append(dbInfos, shardInfo)
+			}
+
+		}
+
+	} else {
+
+		for _, v := range dbShardScheme.DBGroupKeys {
+
+		}
+
+	}
+
+	return dbInfos, nil
 
 }
 
