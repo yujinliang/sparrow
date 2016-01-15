@@ -97,14 +97,47 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	if forceMaster || isWrite {
 
 		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
+		if !dbNode.DBEnable {
+
+			return nil, errors.New("Master DB KO!")
+		}
 
 	} else {
 
 		if dbGroup.SlaveSum > 0 && len(dbGroup.SlaveDBAtomKeys) > 0 {
 
 			dbNodeIndex := randIntRange(0, int(dbGroup.SlaveSum))
+			nextDBNodeIndex := 0
 			dbNodeKey := dbGroup.SlaveDBAtomKeys[dbNodeIndex]
 			dbNode = DBAtomRepository[dbNodeKey]
+			if !dbNode.DBEnable {
+
+				distanceOfMax := dbGroup.SlaveSum - uint(dbNodeIndex)
+				if (float32(distanceOfMax) / float32(dbGroup.SlaveSum)) > randRangePoint {
+
+					nextDBNodeIndex = randIntRange(0, int(dbNodeIndex))
+
+				} else {
+
+					nextDBNodeIndex = randIntRange(int(dbNodeIndex), int(dbGroup.SlaveSum))
+				}
+				dbNodeKey = dbGroup.SlaveDBAtomKeys[nextDBNodeIndex]
+				dbNode = DBAtomRepository[dbNodeKey]
+				if !dbNode.DBEnable {
+					//choose ajacent slave node.
+					for i := 0; i < int(dbGroup.SlaveSum); i++ {
+						if i == dbNodeIndex || i == nextDBNodeIndex {
+							continue
+						}
+						dbNodeKey = dbGroup.SlaveDBAtomKeys[i]
+						dbNode = DBAtomRepository[dbNodeKey]
+						if dbNode.DBEnable {
+							break
+						}
+					}
+
+				}
+			}
 
 		} else {
 
@@ -112,6 +145,10 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 		}
 	}
 
+	if !dbNode.DBEnable {
+
+		return nil, errors.New("Slave DB All KO!")
+	}
 	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
 	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
 	dbInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
