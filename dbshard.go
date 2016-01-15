@@ -168,8 +168,16 @@ func (s *Sparrow) Route2DBs(dbName string, tableName string, shardKey string, fo
 
 }
 
+//attention: the caller must not use it , useless you make sure this db node can not work, such as: connect refuse, or other exception case.
 //when the db node meet some error, can not work, then use this method to report remote config center to check it health.
 func (s *Sparrow) ComplainDBNode(nodeCfg *DBShardInfo) error {
 
+	if nodeCfg == nil || nodeCfg.DBNode == nil {
+
+		return ErrParametersEmptyOrNil
+	}
+	//1. disable this node now.
+	nodeCfg.DBNode.DBEnable = false
+	//2.TODO: report this db node to remote config center which is to check this db node health.
 	return nil
 }

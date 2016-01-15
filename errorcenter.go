@@ -32,3 +32,6 @@ var ErrDbGroupNotExist = errors.New("DB Group Not Exists")
 var ErrMasterDBKO = errors.New("Master DB KO")
 var ErrSlaveDbOfDbGroupNotExits = errors.New("Slave DB Not Exists")
 var ErrAllSlaveDbOfDbGroupKO = errors.New("Slave DB All KO")
+
+//--
+var ErrParametersEmptyOrNil = errors.New("Function Parameters Empty or Nil")
