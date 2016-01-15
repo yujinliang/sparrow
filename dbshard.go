@@ -87,6 +87,9 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	shardNumber := hashString2Number(shardValue)
 	groupIndex := shardNumber % uint64(dbShardScheme.DBGroupSum)
 	groupKey := dbShardScheme.DBGroupKeys[strconv.FormatUint(uint64(groupIndex), 10)]
+	//just for debug.
+	fmt.Printf("shardNumber:%v, groupIndex:%v, groupKey: %v\n", shardNumber, groupIndex, groupKey)
+	//--
 	dbGroup := DBGroupRepository[groupKey]
 	if dbGroup == nil {
 		return nil, ErrDbGroupNotExist
@@ -151,8 +154,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
 	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
 	dbInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
-	//--
-	fmt.Printf("db shard info:%v", dbInfo)
+
 	return dbInfo, nil
 
 }
