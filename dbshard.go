@@ -86,7 +86,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	//lookup the db group, just mod.
 	shardNumber := hashString2Number(shardValue)
 	groupIndex := shardNumber % uint64(dbShardScheme.DBGroupSum)
-	groupKey := strconv.FormatUint(uint64(groupIndex), 10)
+	groupKey := dbShardScheme.DBGroupKeys[strconv.FormatUint(uint64(groupIndex), 10)]
 	dbGroup := DBGroupRepository[groupKey]
 	if dbGroup == nil {
 		return nil, ErrDbGroupNotExist
