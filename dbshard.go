@@ -74,37 +74,51 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 		return nil, errors.New("Shard Value Empty!")
 	}
 	//TODO: check initialization is done?
-	db_shard_scheme := DBScaleOutSchemeRepository[dbName+tableName]
-	if db_shard_scheme == nil {
+	dbShardScheme := DBScaleOutSchemeRepository[dbName+tableName]
+	if dbShardScheme == nil {
 		return nil, errors.New("DB Shard Scheme NOT Exist!")
 	}
-	if shardKey != db_shard_scheme.TableShardkey {
+	if shardKey != dbShardScheme.TableShardkey {
 		return nil, errors.New("DB Shard Key NOT Match!")
 	}
-	if db_shard_scheme.DBGroupSum <= 0 {
+	if dbShardScheme.DBGroupSum <= 0 {
 		return nil, errors.New("NO DB Node!")
 	}
 	//lookup the db group, just mod.
 	shardNumber := hashString2Number(shardValue)
-	group_index := shardNumber % uint64(db_shard_scheme.DBGroupSum)
-	group_key := strconv.FormatUint(uint64(group_index), 10)
-	db_group := DBGroupRepository[group_key]
-	if db_group == nil {
+	groupIndex := shardNumber % uint64(dbShardScheme.DBGroupSum)
+	groupKey := strconv.FormatUint(uint64(groupIndex), 10)
+	dbGroup := DBGroupRepository[groupKey]
+	if dbGroup == nil {
 		return nil, errors.New("DB Group No Exists!")
 	}
+
+	var dbNode *DBAtom = nil
 	if forceMaster || isWrite {
-		db_node := DBAtomRepository[db_group.MasterDBAtomkey]
-		table_index := shardNumber % uint64(db_shard_scheme.TablePerDB)
-		real_table := tableName + strconv.FormatUint(uint64(table_index), 10)
-		db_info := &DBShardInfo{DBNode: db_node, DBName: dbName, TableName: real_table}
-		//--
-		fmt.Printf("db shard info:%v", db_info)
-		return db_info, nil
+
+		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
 
 	} else {
 
+		if dbGroup.SlaveSum > 0 && len(dbGroup.SlaveDBAtomKeys) > 0 {
+
+			dbNodeIndex := randIntRange(0, int(dbGroup.SlaveSum))
+			dbNodeKey := dbGroup.SlaveDBAtomKeys[dbNodeIndex]
+			dbNode = DBAtomRepository[dbNodeKey]
+
+		} else {
+
+			return nil, errors.New("Slave DB No Exists!")
+		}
 	}
-	return nil, nil
+
+	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
+	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
+	dbInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
+	//--
+	fmt.Printf("db shard info:%v", dbInfo)
+	return dbInfo, nil
+
 }
 
 //when match case: shardKey >, >=, <, <= in some range, then run this method, coz to get all db node to execute sql.
