@@ -48,7 +48,7 @@ func lookUpSlaveOfDBGroup(dbGroup *DBGroup) (*DBAtom, error) {
 		nextDBNodeIndex := 0
 		dbNodeKey := dbGroup.SlaveDBAtomKeys[dbNodeIndex]
 		dbNode = DBAtomRepository[dbNodeKey]
-		if !dbNode.DBEnable {
+		if dbNode == nil || !dbNode.DBEnable {
 
 			distanceOfMax := dbGroup.SlaveSum - uint(dbNodeIndex)
 			if (float32(distanceOfMax) / float32(dbGroup.SlaveSum)) > randRangePoint {
@@ -61,17 +61,20 @@ func lookUpSlaveOfDBGroup(dbGroup *DBGroup) (*DBAtom, error) {
 			}
 			dbNodeKey = dbGroup.SlaveDBAtomKeys[nextDBNodeIndex]
 			dbNode = DBAtomRepository[dbNodeKey]
-			if !dbNode.DBEnable {
+			if dbNode == nil || !dbNode.DBEnable {
+
 				//choose ajacent slave node.
 				for i := 0; i < int(dbGroup.SlaveSum); i++ {
+
 					if i == dbNodeIndex || i == nextDBNodeIndex {
 						continue
 					}
 					dbNodeKey = dbGroup.SlaveDBAtomKeys[i]
 					dbNode = DBAtomRepository[dbNodeKey]
-					if dbNode.DBEnable {
+					if dbNode != nil && dbNode.DBEnable {
 						break
 					}
+
 				}
 
 			}
@@ -79,9 +82,14 @@ func lookUpSlaveOfDBGroup(dbGroup *DBGroup) (*DBAtom, error) {
 
 	} else {
 
-		return nil, ErrSlaveDbOfDbGroupNotExits
+		return nil, ErrAllSlaveDbOfDbGroupNotExits
 	}
 
+	if dbNode == nil {
+
+		return nil, ErrAllSlaveDbOfDbGroupEmptyOrNil
+
+	}
 	if !dbNode.DBEnable {
 
 		return nil, ErrAllSlaveDbOfDbGroupKO

@@ -30,7 +30,9 @@ var ErrDbShardKeyNotMatch = errors.New("DB Shard Key NOT Match")
 var ErrDbShardSchemeDbGroupEmpty = errors.New("DB Shard Scheme`s DB Group is Empty")
 var ErrDbGroupNotExist = errors.New("DB Group Not Exists")
 var ErrMasterDBKO = errors.New("Master DB KO")
-var ErrSlaveDbOfDbGroupNotExits = errors.New("Slave DB Not Exists")
+var ErrMasterDBNotExist = errors.New("Master DB Not Exists")
+var ErrAllSlaveDbOfDbGroupNotExits = errors.New("All Slave DB Not Exists")
+var ErrAllSlaveDbOfDbGroupEmptyOrNil = errors.New("All Slave DB Empty Or Nil")
 var ErrAllSlaveDbOfDbGroupKO = errors.New("Slave DB All KO")
 
 //--

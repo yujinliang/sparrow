@@ -18,7 +18,6 @@ limitations under the License.
 package sparrow
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -101,6 +100,11 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	if forceMaster || isWrite {
 
 		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
+		if dbNode == nil {
+
+			return nil, ErrMasterDBNotExist
+
+		}
 		if !dbNode.DBEnable {
 
 			return nil, ErrMasterDBKO
@@ -163,9 +167,15 @@ func (s *Sparrow) Route2DBs(dbName string, tableName string, shardKey string, fo
 			dbNode := DBAtomRepository[dbGroup.MasterDBAtomkey]
 			if dbNode == nil {
 
+				return nil, ErrMasterDBNotExist
+
+			}
+			if !dbNode.DBEnable {
+
 				return nil, ErrMasterDBKO
 
 			}
+
 			for i := 0; i < int(dbShardScheme.TablePerDB); i++ {
 
 				realTableName := tableName + strconv.FormatUint(uint64(i), 10)
