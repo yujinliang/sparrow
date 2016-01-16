@@ -189,6 +189,24 @@ func (s *Sparrow) Route2DBs(dbName string, tableName string, shardKey string, fo
 
 		for _, v := range dbShardScheme.DBGroupKeys {
 
+			dbGroup := DBGroupRepository[v]
+			if dbGroup == nil {
+
+				return nil, ErrDbGroupNotExist
+			}
+			dbNode, err := lookUpSlaveOfDBGroup(dbGroup)
+			if err != nil {
+
+				return nil, err
+
+			}
+			for i := 0; i < int(dbShardScheme.TablePerDB); i++ {
+
+				realTableName := tableName + strconv.FormatUint(uint64(i), 10)
+				shardInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
+				dbInfos = append(dbInfos, shardInfo)
+
+			}
 		}
 
 	}
