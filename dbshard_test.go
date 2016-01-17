@@ -193,3 +193,40 @@ func BenchmarkRoute2DB1(b *testing.B) {
 		}
 	}
 }
+
+func TestRoute2DBs1(t *testing.T) {
+
+	var sp Sparrow
+	sp.Initialize(nil)
+	rc, err := sp.Route2DBs("db", "table", "user_id", false, false)
+	if err != nil {
+
+		t.Error(err)
+	}
+
+	if rc == nil || len(rc) <= 0 {
+
+		t.Errorf("%s, %s, result empty", "db", "table")
+	}
+
+	for i, v := range rc {
+
+		if v == nil || v.DBNode == nil {
+
+			t.Errorf("%s, %s, idx: %d empty", "db", "talbe", i)
+		}
+		if v.DBNode.IsMaster {
+
+			t.Errorf("%s, %d should not be master", v.DBNode.Ip, v.DBNode.Port)
+		}
+		if !v.DBNode.DBEnable {
+
+			t.Errorf("%s, %d disable", v.DBNode.Ip, v.DBNode.Port)
+		}
+		t.Logf("%s, %s, %s, %d, %s, %s, Factor: %d, Enable: %b, isMaster: %b", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
+	}
+}
+
+func BenchmarkRoute2DBs1(b *testing.B) {
+
+}

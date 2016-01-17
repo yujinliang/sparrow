@@ -220,7 +220,7 @@ func (s *Sparrow) ComplainDBNode(nodeCfg *DBShardInfo) error {
 		return ErrParametersEmptyOrNil
 	}
 	//1. disable this node now.
-	nodeCfg.DBNode.DBEnable = false
+	nodeCfg.DBNode.DBEnable = false //need lock protect?
 	//2.TODO: report this db node to remote config center which is to check this db node health.
 	return nil
 }
