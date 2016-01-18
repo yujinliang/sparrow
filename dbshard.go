@@ -18,7 +18,9 @@ limitations under the License.
 package sparrow
 
 import (
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 //with it , caller must construct db connection , and sql execution and so on.
@@ -30,6 +32,12 @@ type DBShardInfo struct {
 
 type Sparrow struct {
 	CfgEndpoints []string //like: ip:port ; domainName:port
+}
+
+func init() {
+
+	rand.Seed(time.Now().UTC().UnixNano())
+
 }
 
 //get db shard config for remote config center.

@@ -20,7 +20,6 @@ package sparrow
 import (
 	"hash/fnv"
 	"math/rand"
-	"time"
 )
 
 func hashString2Number(s string) uint64 {
@@ -35,7 +34,7 @@ func randIntRange(min int, max int) int {
 	if max <= min {
 		return min
 	}
-	rand.Seed(time.Now().UTC().UnixNano())
+
 	return min + rand.Intn(max-min)
 }
 
