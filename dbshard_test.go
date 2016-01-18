@@ -251,7 +251,7 @@ func TestRoute2DBs1(t *testing.T) {
 
 			t.Errorf("%s, %d disable", v.DBNode.Ip, v.DBNode.Port)
 		}
-		t.Logf("nf, ro:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %b, isMaster: %b", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
+		t.Logf("nf, ro:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %t, isMaster: %t", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
 	}
 	//--
 	rc, err = sp.Route2DBs("db", "table", "user_id", false, true)
@@ -279,7 +279,7 @@ func TestRoute2DBs1(t *testing.T) {
 
 			t.Errorf("%s, %d disable", v.DBNode.Ip, v.DBNode.Port)
 		}
-		t.Logf("nf, w:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %b, isMaster: %b", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
+		t.Logf("nf, w:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %t, isMaster: %t", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
 	}
 	//--
 	rc, err = sp.Route2DBs("db", "table", "user_id", true, false)
@@ -307,7 +307,7 @@ func TestRoute2DBs1(t *testing.T) {
 
 			t.Errorf("%s, %d disable", v.DBNode.Ip, v.DBNode.Port)
 		}
-		t.Logf("f, ro:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %b, isMaster: %b", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
+		t.Logf("f, ro:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %t, isMaster: %t", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
 	}
 	//--
 	rc, err = sp.Route2DBs("db", "table", "user_id", true, true)
@@ -335,7 +335,7 @@ func TestRoute2DBs1(t *testing.T) {
 
 			t.Errorf("%s, %d disable", v.DBNode.Ip, v.DBNode.Port)
 		}
-		t.Logf("f, w:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %b, isMaster: %b", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
+		t.Logf("f, w:=> %s, %s, %s, %d, %s, %s, Factor: %d, Enable: %t, isMaster: %t", v.DBName, v.TableName, v.DBNode.Ip, v.DBNode.Port, v.DBNode.DBUser, v.DBNode.DBPwd, v.DBNode.DBFactor, v.DBNode.DBEnable, v.DBNode.IsMaster)
 	}
 }
 
