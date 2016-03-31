@@ -91,8 +91,15 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 		return nil, ErrDbShardSchemeDbGroupEmpty
 	}
 	//lookup the db group, just mod.
-	shardNumber := hashString2Number(shardValue)
-	groupIndex := shardNumber % uint64(dbShardScheme.DBGroupSum)
+	shardIdGenerator := &HashShardIdGenerator{}
+
+	var shardId uint64 = 0
+	var err error = nil
+	if shardId , err = shardIdGenerator.GenerateShardId(shardValue); err != nil {
+
+		return  nil, err
+	}
+	groupIndex := shardId % uint64(dbShardScheme.DBGroupSum)
 	groupKey := dbShardScheme.DBGroupKeys[strconv.FormatUint(uint64(groupIndex), 10)]
 	dbGroup := DBGroupRepository[groupKey]
 	if dbGroup == nil {
@@ -100,7 +107,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 	}
 
 	var dbNode *DBAtom = nil
-	var err error = nil
+
 	if forceMaster || isWrite {
 
 		dbNode = DBAtomRepository[dbGroup.MasterDBAtomkey]
@@ -125,7 +132,7 @@ func (s *Sparrow) Route2DB(dbName string, tableName string, shardKey string, sha
 
 	}
 
-	tableIndex := shardNumber % uint64(dbShardScheme.TablePerDB)
+	tableIndex := shardId % uint64(dbShardScheme.TablePerDB)
 	realTableName := tableName + strconv.FormatUint(uint64(tableIndex), 10)
 	dbInfo := &DBShardInfo{DBNode: dbNode, DBName: dbName, TableName: realTableName}
 
