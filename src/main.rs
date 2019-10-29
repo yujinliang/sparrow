@@ -1,3 +1,7 @@
+include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
+
 fn main() {
-    println!("Hello, world!");
+
+    println!("commit_id: {}", COMMIT_ID);
+
 }
