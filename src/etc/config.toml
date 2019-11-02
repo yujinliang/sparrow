@@ -101,7 +101,6 @@ table = "test_table"
 shard_key = "id"
 db_cluster_list = ["cluster_1", "cluster_2"]
 default_write_to = "cluster_1"
-
 each_cluster_table_split_count = [
     {cluster_1 = 2},
     {cluster_2 = 7}
@@ -124,7 +123,6 @@ table = "test_table"
 shard_key = "id"
 db_cluster_list = ["cluster_1", "cluster_2"]
 default_write_to = "cluster_1"
-
 each_cluster_table_split_count = [
     {cluster_1 = 2},
     {cluster_2 = 7}
