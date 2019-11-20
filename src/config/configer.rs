@@ -1,12 +1,12 @@
 use serde::{ Deserialize};
 use std::fs::File;
 use std::io::prelude::*;
-
+use std::error::Error;
 
 /// This is what we're going to decode into. Each field is optional, meaning
 /// that it doesn't have to be present in TOML.
 #[derive(Debug, Deserialize)]
-struct Config {
+pub struct Config {
         global: Option<GlobalConfig>,
         proxy: Option<ProxyConfig>,
         web:Option<WebConfig>,
@@ -72,16 +72,22 @@ struct DBShardSchemaConfig {
 }
 
 //fn definition start here.
-pub fn load_config()  {
+pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
     //1.find and read the config file.
-    let config_path = std::env::args().nth(1).expect("Please give me the config file path.");
+    let config_path = std::env::args().nth(1).expect("Please at least give me the config file path.");
     let mut f = File::open(config_path).unwrap();
     let mut contents = String::new();
     f.read_to_string(&mut contents).unwrap();
   
     //2. parse the toml 
-    let decoded: Config = toml::de::from_str(&contents).unwrap();
-    println!("{:#?}", decoded);
+    let cfg: Config = toml::de::from_str(&contents).unwrap();
+    Ok(cfg)
+
+    //3. init shard router
+
+    //4. run proxy server
+
+    //5. run web server.
 }
 

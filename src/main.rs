@@ -8,5 +8,6 @@ fn main() {
     println!("------------------------------------------------------");
 
     //1. config.
-    config::configer::load_config();
+    let cfg = config::load_config().unwrap();
+    println!("{:#?}", cfg );
 }
