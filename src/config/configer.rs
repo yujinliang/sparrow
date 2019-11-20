@@ -84,10 +84,5 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let cfg: Config = toml::de::from_str(&contents).unwrap();
     Ok(cfg)
 
-    //3. init shard router
-
-    //4. run proxy server
-
-    //5. run web server.
 }
 

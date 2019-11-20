@@ -1,5 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
 mod config;
+mod router;
 
 fn main() {
     
@@ -10,4 +11,11 @@ fn main() {
     //1. config.
     let cfg = config::load_config().unwrap();
     println!("{:#?}", cfg );
+
+    //2. init shard router
+    let mut r  = router::Router::new(&cfg);
+    let _r_table = r.gen_routing_table();
+    //3. run proxy server
+
+    //4. run web server.
 }
