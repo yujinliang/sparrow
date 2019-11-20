@@ -1,5 +1,6 @@
 use crate::config::Config;
 use std::result::Result;
+use std::collections::HashMap;
 
 pub struct Router <'a>{
 
@@ -15,7 +16,7 @@ impl<'a> Router<'a> {
   pub   fn gen_routing_table(&mut self) -> Result<String ,String > {
 
         let r_table = RouterTable{
-            id:"test".to_string(),
+            table_entry:HashMap::new(),
         };
         let s = format!("{:?}",  r_table);
         Ok(s)
@@ -23,7 +24,11 @@ impl<'a> Router<'a> {
 }
 
 #[derive(Debug)]
-struct RouterTable {
+struct RouterTable<'a> {
+    table_entry: HashMap<&'a str, RouterTableEntry>,
+}
 
-    id : String,
+#[derive(Debug)]
+struct RouterTableEntry {
+    id : String, //proxy user + db + table.
 }
