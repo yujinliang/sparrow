@@ -17,9 +17,11 @@ fn main() {
                                                          .arg("rev-parse")
                                                          .arg("HEAD")
                                                          .output()
-                                                         .expect("Failed to execute git command");
-        let commit = String::from_utf8(commit.stdout).expect("Invalid utf8 string");
-        
+                                                        .and_then(|p|{ 
+
+                                                        let out = String::from_utf8(p.stdout).unwrap_or("Invalid utf8 string".to_string());
+                                                        Ok(out)
+        }).unwrap();
         //get compile datetime
         let compile_time = Utc::now();
 
