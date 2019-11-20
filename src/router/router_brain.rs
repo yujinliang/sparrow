@@ -16,10 +16,16 @@ impl<'a> Router<'a> {
 
   pub   fn gen_routing_table(&mut self) -> Result<String ,String > {
 
-        self.r_table = Some(RouterTable{
+        let mut r_table = RouterTable{
             table_entry:HashMap::new(),
-        });
-        let s = format!("{:?}",  self.r_table);
+        };
+
+        r_table.table_entry.insert("1", RouterTableEntry{id:"test1".to_string()});
+        r_table.table_entry.insert("2", RouterTableEntry{id:"test2".to_string()});
+        r_table.table_entry.insert("3", RouterTableEntry{id:"test3".to_string()});
+
+        let s = format!("{:?}",  r_table);
+        self.r_table = Some(r_table);
         Ok(s)
     }
 }
