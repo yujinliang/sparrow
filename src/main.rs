@@ -1,4 +1,5 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
+mod config;
 
 fn main() {
     
@@ -6,4 +7,6 @@ fn main() {
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
     println!("------------------------------------------------------");
 
+    //1. config.
+    config::configer::load_config();
 }
