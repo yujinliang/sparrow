@@ -14,7 +14,16 @@ impl<'a> Router<'a> {
 
   pub   fn gen_routing_table(&mut self) -> Result<String ,String > {
 
-        println!("{:?}" , self.cfg);
-        Ok("test".to_string())
+        let r_table = RouterTable{
+            id:"test".to_string(),
+        };
+        let s = format!("{:?}",  r_table);
+        Ok(s)
     }
+}
+
+#[derive(Debug)]
+struct RouterTable {
+
+    id : String,
 }
