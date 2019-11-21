@@ -13,9 +13,8 @@ fn main() {
     println!("{:#?}", cfg );
 
     //2. init shard router
-    let mut r  = router::Router::new(&cfg);
-    let r_table_string = r.gen_routing_table();
-    println!("{:#?}",r_table_string );
+    let shard_r = router::init_shard_router(Some(&cfg));
+    println!("{:#?}",shard_r );
     //3. run proxy server
 
     //4. run web server.

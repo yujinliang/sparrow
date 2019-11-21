@@ -1,3 +1,3 @@
 mod router_brain;
-mod scheduler;
 pub use router_brain::Router;
+pub use router_brain::init_shard_router;
