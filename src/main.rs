@@ -1,6 +1,7 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
 mod config;
 mod router;
+mod proxy;
 
 fn main() {
     
