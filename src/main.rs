@@ -11,12 +11,12 @@ fn main() {
 
     //1. config.
     let cfg = config::load_config().unwrap();
-    println!("{:#?}", cfg );
+    //println!("{:#?}", cfg );
 
     //2. init shard router
-    let shard_r = router::init_shard_router(Some(&cfg));
+    let shard_r = router::init_shard_router(Some(&cfg)).unwrap();
     println!("{:#?}",shard_r );
     //3. run proxy server
-
+    proxy::ProxyServer::new(Some(&cfg));
     //4. run web server.
 }
