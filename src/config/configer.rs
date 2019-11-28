@@ -12,7 +12,29 @@ pub struct Config {
         web:Option<WebConfig>,
         db_node_list:Option<Vec<DBNodeConfig>>,
         db_cluster_list:Option<Vec<DBClusterConfig>>,
-        db_shard_schema_list:Option<Vec<DBShardSchemaConfig>>,
+     pub    db_shard_schema_list:Option<Vec<DBShardSchemaConfig>>,
+}
+
+impl Config {
+    pub fn get_db_cluster(&self, id : &str) -> Option<&DBClusterConfig> {
+
+        for x in self.db_cluster_list.as_ref().unwrap().iter() {
+            if x.id.as_ref().unwrap() == id {
+                return Some(x);
+            }
+        }
+        None
+    }
+
+    pub fn get_db_node(&self, id: &str) -> Option<&DBNodeConfig> {
+
+        for x in self.db_node_list.as_ref().unwrap().iter() {
+            if x.id.as_ref().unwrap() == id {
+                return Some(x);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,8 +64,8 @@ struct WebConfig {
     web_pwd: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-struct DBNodeConfig {
+#[derive(Debug, Deserialize, Clone)]
+pub struct DBNodeConfig {
     id: Option<String>,
     listen_addr: Option<String>,
     user: Option<String>,
@@ -52,22 +74,22 @@ struct DBNodeConfig {
 }
 
 #[derive(Debug, Deserialize)]
-struct DBClusterConfig {
-    id: Option<String>,
-    master_node_id: Option<String>,
-    slave_node_id_list: Option<Vec<String>>,
+pub struct DBClusterConfig {
+ pub    id: Option<String>,
+ pub   master_node_id: Option<String>,
+ pub   slave_node_id_list: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct DBShardSchemaConfig {
-        owner: Option<String>,
-        db: Option<String>,
-        table: Option<String>,
-        shard_key: Option<String>,
-        db_cluster_id_list: Option<Vec<String>>,
-        default_write_to: Option<String>,
-        shard_type:Option<String>,
-        each_cluster_table_split_count: Option<Vec<u16>>,
+pub struct DBShardSchemaConfig {
+      pub  owner: Option<String>,
+      pub  db: Option<String>,
+      pub  table: Option<String>,
+      pub  shard_key: Option<String>,
+      pub  db_cluster_id_list: Option<Vec<String>>,
+      pub  default_write_to: Option<String>,
+      pub  shard_type:Option<String>,
+      pub each_cluster_table_split_count: Option<Vec<u16>>,
         day_range:Option<Vec<String>>,
 }
 
