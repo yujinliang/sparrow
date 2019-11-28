@@ -11,6 +11,14 @@ pub struct Router <'a>{
     table : Box<RouterTable>,
 }
 
+impl<'a> Router<'a> {
+
+    //key: proxy user + '-' + db + '-' + 'table' 
+    pub fn get_table_entry(&self, key : &str) -> Option<&RouterTableEntry> {
+
+        self.table.table_entry.get(key)
+    }
+}
 //Attention: just allow to be called in main start flow.
   pub   fn init_shard_router( c: Option<& Config>) -> Result<Arc<Router> ,String > {
 
@@ -68,7 +76,7 @@ pub struct Router <'a>{
 
 
 #[derive(Debug)]
-pub struct RouterTable {
+struct RouterTable {
     //key : proxy user +db + table
     table_entry: HashMap<String, RouterTableEntry>,
 }
@@ -82,14 +90,14 @@ enum ShardType {
 }
 
 #[derive(Debug)]
-struct DBCluster{
+pub struct DBCluster{
     id: String,
     master_node: DBNode,
     slave_node_list: Vec<DBNode>,
     cluster_table_split_count: u16,
 }
 #[derive(Debug)]
-struct DBNode {
+pub struct DBNode {
     node_cfg: DBNodeConfig,
     //for extending for later.
 }
@@ -105,3 +113,56 @@ pub struct RouterTableEntry {
     default_write_to: String,
     //day_range:Vec<String>,
 }
+
+impl RouterTableEntry {
+
+    pub fn get_default_cluster(&self) -> Option<&DBCluster> {
+
+            for x in self.cluster_list.iter() {
+                    if self.default_write_to == x.id {
+                        return Some(x)
+                    }
+            }
+
+            None
+    }
+
+    pub fn get_all_cluster(&self) -> &Vec<DBCluster>  {
+
+        &self.cluster_list
+    }
+
+    pub fn find_router_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
+
+        match self.shard_type {
+
+            ShardType::Hash => {
+                None
+            },
+            ShardType::OrdinalNumber => {
+
+                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap();
+             
+                let cluster_sum  = self.cluster_list.len() as u128 ;
+                if cluster_sum > 0 {
+                    let cluster_idx = shard_u128 % cluster_sum;
+                    let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
+                    if cluster.cluster_table_split_count > 0 {
+                        let table_idx = shard_u128 % cluster.cluster_table_split_count as u128;
+                        let table_final_name = format!("{}_{}", self.table, table_idx);
+                        return Some(( cluster, table_final_name));
+                    }
+                    return Some(( cluster, self.table.clone()));
+                } 
+
+                None
+            },
+            ShardType::DateDay => {
+                None
+            }
+            _ =>  None,
+        }
+
+    }
+}
+

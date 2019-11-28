@@ -123,5 +123,5 @@
     shard_key = "id"
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to = "cluster_1"
-    each_cluster_table_split_count = [ 2,7]
+    each_cluster_table_split_count = [ 3,9]
     shard_type = "ordinal_number "
