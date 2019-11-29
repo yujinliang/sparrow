@@ -17,7 +17,14 @@ fn main() {
     let shard_r = router::init_shard_router(Some(&cfg)).unwrap();
     println!("{:#?}",shard_r );
     shard_r.get_table_entry("root-ordinal_db-test_table").and_then(| entry |{
-        let road = entry.find_router_path("1234568");
+        let road = entry.find_router_path("1234567");
+        print!("----------------------------------------------------------------\n" );
+        println!("{:#?}", road);
+        Some(())
+    }).unwrap();
+    //------------
+    shard_r.get_table_entry("root-test_db-hash_table").and_then(| entry |{
+        let road = entry.find_router_path("hello4569233");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())

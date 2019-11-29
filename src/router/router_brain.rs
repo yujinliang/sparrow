@@ -3,6 +3,8 @@ use crate::config::DBNodeConfig;
 use std::result::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 
 #[derive(Debug)]
 pub struct Router <'a>{
@@ -116,7 +118,7 @@ pub struct RouterTableEntry {
 
 impl RouterTableEntry {
 
-    pub fn get_default_cluster(&self) -> Option<&DBCluster> {
+pub fn get_default_cluster(&self) -> Option<&DBCluster> {
 
             for x in self.cluster_list.iter() {
                     if self.default_write_to == x.id {
@@ -127,6 +129,7 @@ impl RouterTableEntry {
             None
     }
 
+    #[inline]
     pub fn get_all_cluster(&self) -> &Vec<DBCluster>  {
 
         &self.cluster_list
@@ -137,6 +140,21 @@ impl RouterTableEntry {
         match self.shard_type {
 
             ShardType::Hash => {
+
+                let mut s = DefaultHasher::new();
+                shard_key.hash(&mut s);
+                let shard_hash = s.finish(); //u64
+                let cluster_sum  = self.cluster_list.len() as u64 ;
+                if cluster_sum > 0 {
+                    let cluster_idx = shard_hash % cluster_sum;
+                    let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
+                    if cluster.cluster_table_split_count > 1 {
+                        let table_idx = shard_hash % cluster.cluster_table_split_count as u64;
+                        let table_final_name = format!("{}_{}", self.table, table_idx);
+                        return Some(( cluster, table_final_name));
+                    }
+                    return Some(( cluster, self.table.clone()));
+                } 
                 None
             },
             ShardType::OrdinalNumber => {
@@ -147,7 +165,7 @@ impl RouterTableEntry {
                 if cluster_sum > 0 {
                     let cluster_idx = shard_u128 % cluster_sum;
                     let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
-                    if cluster.cluster_table_split_count > 0 {
+                    if cluster.cluster_table_split_count > 1 {
                         let table_idx = shard_u128 % cluster.cluster_table_split_count as u128;
                         let table_final_name = format!("{}_{}", self.table, table_idx);
                         return Some(( cluster, table_final_name));

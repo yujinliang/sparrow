@@ -97,7 +97,7 @@
     [[db_shard_schema_list]]
     owner = "root"
     db = "test_db"
-    table = "test_table"
+    table = "hash_table"
     shard_key = "id"
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to  = "cluster_1"
