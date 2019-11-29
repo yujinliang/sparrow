@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::ops::Range;
 
 #[derive(Debug)]
 pub struct Router <'a>{
@@ -51,8 +52,8 @@ impl<'a> Router<'a> {
                             for (pos , s) in cc.iter().enumerate() {
                                 let ccfg = cfg.get_db_cluster(s);
 
-                                let table_split_count = x.each_cluster_table_split_count.as_ref().map_or( 0, | x | {
-                                    x[pos]
+                                let table_split_count = x.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
+                                    tsc[pos]
                                 });
 
                                 let mut slave_n_vec: Vec<DBNode> = Vec::new();
@@ -69,10 +70,23 @@ impl<'a> Router<'a> {
                             vec
                         }).unwrap(),
 
-                        integer_range: x.integer_range.as_ref().map(|x|{
-                            let mut v : Vec<u128> = Vec::new();
-                            for (_idx, s) in x.iter().enumerate() {
-                                v.push( u128::from_str_radix( s, 10).unwrap());
+                        integer_range: x.integer_range.as_ref().map(|i|{
+                            let mut v : Vec<Range<u128>> = Vec::new();
+                            let range_sum = i.len() / 2;
+                            x.db_cluster_id_list.as_ref().and_then(move |l| {
+                                if range_sum != l.len() {
+                                     return None
+                                }
+                                Some(range_sum)
+                            }).unwrap();
+
+                            for pair in i.chunks(2) {
+                                let start = u128::from_str_radix( &pair[0], 10).unwrap();
+                                let end = u128::from_str_radix( &pair[1], 10).unwrap();
+                                v.push(Range{
+                                     start: start,
+                                     end: end,
+                                } );
                             }
                             v
                         }),
@@ -122,7 +136,7 @@ pub struct RouterTableEntry {
     shard_type:ShardType,
     cluster_list: Vec<DBCluster>,
     default_write_to: String,
-    integer_range:Option<Vec<u128>>,
+    integer_range:Option<Vec<Range<u128>>>,
 }
 
 impl RouterTableEntry {
@@ -185,7 +199,18 @@ pub fn get_default_cluster(&self) -> Option<&DBCluster> {
                 None
             },
             ShardType::IntegerRange => {
-                None
+
+                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap();
+                self.integer_range.as_ref().and_then(|v|{
+                        for (idx, r )in v.iter().enumerate() {
+                                if r.contains(&shard_u128) {
+                                    let cluster : &DBCluster = &self.cluster_list[idx as usize];
+                                    return Some((cluster, self.table.clone()));
+                                }
+                        }
+                        None
+                })
+            
             }
             _ =>  None,
         }

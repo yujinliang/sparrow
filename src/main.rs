@@ -15,8 +15,9 @@ fn main() {
 
     //2. init shard router
     let shard_r = router::init_shard_router(Some(&cfg)).unwrap();
+    //test start
     println!("{:#?}",shard_r );
-    shard_r.get_table_entry("root-ordinal_db-test_table").and_then(| entry |{
+    shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
         let road = entry.find_router_path("1234567");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
@@ -29,6 +30,14 @@ fn main() {
         println!("{:#?}", road);
         Some(())
     }).unwrap();
+    //------------------
+    shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
+        let road = entry.find_router_path("20201102");
+        print!("----------------------------------------------------------------\n" );
+        println!("{:#?}", road);
+        Some(())
+    }).unwrap();
+    //test end.
     //3. run proxy server
     proxy::ProxyServer::new(Some(&cfg));
     //4. run web server.

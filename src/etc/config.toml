@@ -113,13 +113,13 @@
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to = "cluster_1"
     shard_type = "integer_range"
-     # which means left close and right  close range , such as: [ 20191102, 20201102]
-    integer_range = [ "20191102", "20201102", "20211102", "20221102"]
+     # which means left close and right  open range , such as: [ 20191102, 20201102)
+    integer_range = [ "20191102", "20201102", "20201102", "20221006"]
     #---
     [[db_shard_schema_list]]
     owner = "root"
     db = "ordinal_db"
-    table = "test_table"
+    table = "integer_table"
     shard_key = "id"
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to = "cluster_1"
