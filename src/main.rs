@@ -22,21 +22,25 @@ fn main() {
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    }).unwrap();
+    }).unwrap_or_default();
     //------------
     shard_r.get_table_entry("root-test_db-hash_table").and_then(| entry |{
         let road = entry.find_router_path("hello4569233");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    }).unwrap();
+    }).unwrap_or_default();
     //------------------
     shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
         let road = entry.find_router_path("20201102");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    }).unwrap();
+    }).unwrap_or_else(||{
+
+        println!("nothing!");
+        ()
+    });
     //test end.
     //3. run proxy server
     proxy::ProxyServer::new(Some(&cfg));
