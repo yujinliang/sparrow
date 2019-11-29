@@ -108,13 +108,13 @@
     [[db_shard_schema_list]]
     owner = "root"
     db = "sparrow"
-    table = "date_day_table"
-    shard_key = "date_day"
+    table = "ordinal_range_table"
+    shard_key = "date_str"
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to = "cluster_1"
-    shard_type = "date_day"
+    shard_type = "integer_range"
      # which means left close and right  close range , such as: [ 20191102, 20201102]
-    day_range = [ "2019-11-02", "2020-11-02", "2021-11-02", "2022-11-02"]
+    integer_range = [ "20191102", "20201102", "20211102", "20221102"]
     #---
     [[db_shard_schema_list]]
     owner = "root"
@@ -124,4 +124,4 @@
     db_cluster_id_list = ["cluster_1", "cluster_2"]
     default_write_to = "cluster_1"
     each_cluster_table_split_count = [ 3,9]
-    shard_type = "ordinal_number "
+    shard_type = "integer"

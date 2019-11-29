@@ -40,8 +40,8 @@ impl<'a> Router<'a> {
                         shard_type: x.shard_type.as_ref().map(|s|{
                             match s.as_str().to_lowercase().trim() {
                                 "hash" => ShardType::Hash,
-                                "date_day" => ShardType::DateDay,
-                                "ordinal_number" => ShardType::OrdinalNumber,
+                                "integer_range" => ShardType::IntegerRange,
+                                "integer" => ShardType::Integer,
                                 _ => ShardType::Unknown,
                             } 
                         }).unwrap(),
@@ -68,6 +68,15 @@ impl<'a> Router<'a> {
                             } 
                             vec
                         }).unwrap(),
+
+                        integer_range: x.integer_range.as_ref().map(|x|{
+                            let mut v : Vec<u128> = Vec::new();
+                            for (_idx, s) in x.iter().enumerate() {
+                                v.push( u128::from_str_radix( s, 10).unwrap());
+                            }
+                            v
+                        }),
+
                 });
             }
 
@@ -85,8 +94,8 @@ struct RouterTable {
 
 #[derive(Debug, Copy, Clone)]
 enum ShardType {
-    DateDay,
-    OrdinalNumber,
+    IntegerRange,
+    Integer,
     Hash,
     Unknown,
 }
@@ -113,7 +122,7 @@ pub struct RouterTableEntry {
     shard_type:ShardType,
     cluster_list: Vec<DBCluster>,
     default_write_to: String,
-    //day_range:Vec<String>,
+    integer_range:Option<Vec<u128>>,
 }
 
 impl RouterTableEntry {
@@ -157,7 +166,7 @@ pub fn get_default_cluster(&self) -> Option<&DBCluster> {
                 } 
                 None
             },
-            ShardType::OrdinalNumber => {
+            ShardType::Integer => {
 
                 let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap();
              
@@ -175,7 +184,7 @@ pub fn get_default_cluster(&self) -> Option<&DBCluster> {
 
                 None
             },
-            ShardType::DateDay => {
+            ShardType::IntegerRange => {
                 None
             }
             _ =>  None,
