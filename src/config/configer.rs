@@ -87,7 +87,6 @@ pub struct DBShardSchemaConfig {
       pub  table: Option<String>,
       pub  shard_key: Option<String>,
       pub  db_cluster_id_list: Option<Vec<String>>,
-      pub  default_write_to: Option<String>,
       pub  shard_type:Option<String>,
       pub  each_cluster_table_split_count: Option<Vec<u16>>,
       pub  integer_range:Option<Vec<String>>,

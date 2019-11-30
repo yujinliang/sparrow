@@ -46,7 +46,7 @@ impl<'a> Router<'a> {
                                 _ => ShardType::Unknown,
                             } 
                         }).unwrap(),
-                        default_write_to:x.default_write_to.as_ref().unwrap().clone(),
+                        
                         cluster_list: x.db_cluster_id_list.as_ref().map(| cc |{
                             let mut vec: Vec<DBCluster> = Vec::new();
                             for (pos , s) in cc.iter().enumerate() {
@@ -135,21 +135,15 @@ pub struct RouterTableEntry {
     shard_key: String,
     shard_type:ShardType,
     cluster_list: Vec<DBCluster>,
-    default_write_to: String,
     integer_range:Option<Vec<Range<u128>>>,
 }
 
 impl RouterTableEntry {
 
-pub fn get_default_cluster(&self) -> Option<&DBCluster> {
+    #[inline]
+    pub fn get_default_cluster(&self) -> &DBCluster {
 
-            for x in self.cluster_list.iter() {
-                    if self.default_write_to == x.id {
-                        return Some(x)
-                    }
-            }
-
-            None
+        &self.cluster_list[0]
     }
 
     #[inline]
@@ -182,10 +176,10 @@ pub fn get_default_cluster(&self) -> Option<&DBCluster> {
             },
             ShardType::Integer => {
 
-                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap();
-             
+                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                 let cluster_sum  = self.cluster_list.len() as u128 ;
                 if cluster_sum > 0 {
+
                     let cluster_idx = shard_u128 % cluster_sum;
                     let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
                     if cluster.cluster_table_split_count > 1 {
@@ -195,23 +189,23 @@ pub fn get_default_cluster(&self) -> Option<&DBCluster> {
                     }
                     return Some(( cluster, self.table.clone()));
                 } 
-
                 None
             },
             ShardType::IntegerRange => {
-
-                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap();
-                self.integer_range.as_ref().and_then(|v|{
-                        for (idx, r )in v.iter().enumerate() {
-                                if r.contains(&shard_u128) {
-                                    let cluster : &DBCluster = &self.cluster_list[idx as usize];
-                                    return Some((cluster, self.table.clone()));
-                                }
-                        }
-                        None
-                })
             
-            }
+                if self.cluster_list.len() > 0 {
+                    let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
+                    if let Some(v) = self.integer_range.as_ref() {
+                            for (idx, r )in v.iter().enumerate() {
+                                 if r.contains(&shard_u128) {
+                                         return Some((&self.cluster_list[idx as usize], self.table.clone()));
+                                 }
+                            }
+                            return Some(( self.get_default_cluster(), self.table.clone()));
+                    }
+                }
+                None
+            },
             _ =>  None,
         }
 
