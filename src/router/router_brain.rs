@@ -22,7 +22,7 @@ impl Router {
     }
 }
 //Attention: just allow to be called in main start flow.
-  pub   fn init_shard_router( c: Option<& Config>) -> Result<Arc<Router> ,String > {
+  pub   fn load_shard_router( c: Option<& Config>) -> Result<Arc<Router> ,String > {
 
     if let Some(ref cfg) = c {
 

@@ -14,7 +14,7 @@ fn main() {
     //println!("{:#?}", cfg );
 
     //2. init shard router
-    let shard_r = router::init_shard_router(Some(&cfg)).unwrap();
+    let shard_r = router::load_shard_router(Some(&cfg)).unwrap();
     //test start
     println!("{:#?}",shard_r );
     /*shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
