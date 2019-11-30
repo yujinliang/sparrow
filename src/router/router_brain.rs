@@ -158,11 +158,11 @@ impl RouterTableEntry {
 
             ShardType::Hash => {
 
-                let mut s = DefaultHasher::new();
-                shard_key.hash(&mut s);
-                let shard_hash = s.finish(); //u64
                 let cluster_sum  = self.cluster_list.len() as u64 ;
                 if cluster_sum > 0 {
+                    let mut s = DefaultHasher::new();
+                    shard_key.hash(&mut s);
+                    let shard_hash = s.finish(); //u64
                     let cluster_idx = shard_hash % cluster_sum;
                     let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
                     if cluster.cluster_table_split_count > 1 {
@@ -176,10 +176,9 @@ impl RouterTableEntry {
             },
             ShardType::Integer => {
 
-                let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                 let cluster_sum  = self.cluster_list.len() as u128 ;
                 if cluster_sum > 0 {
-
+                    let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                     let cluster_idx = shard_u128 % cluster_sum;
                     let cluster : &DBCluster = &self.cluster_list[cluster_idx as usize];
                     if cluster.cluster_table_split_count > 1 {
@@ -193,16 +192,16 @@ impl RouterTableEntry {
             },
             ShardType::IntegerRange => {
             
-                if self.cluster_list.len() > 0 {
-                    let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
+                if self.cluster_list.len() > 0 { 
                     if let Some(v) = self.integer_range.as_ref() {
+                            let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                             for (idx, r )in v.iter().enumerate() {
                                  if r.contains(&shard_u128) {
                                          return Some((&self.cluster_list[idx as usize], self.table.clone()));
                                  }
-                            }
-                            return Some(( self.get_default_cluster(), self.table.clone()));
+                            } 
                     }
+                    return Some(( self.get_default_cluster(), self.table.clone()));
                 }
                 None
             },
