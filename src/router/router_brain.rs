@@ -8,13 +8,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::ops::Range;
 
 #[derive(Debug)]
-pub struct Router <'a>{
+pub struct Router {
 
-    cfg : &'a Config,
     table : Box<RouterTable>,
 }
 
-impl<'a> Router<'a> {
+impl Router {
 
     //key: proxy user + '-' + db + '-' + 'table' 
     pub fn get_table_entry(&self, key : &str) -> Option<&RouterTableEntry> {
@@ -25,78 +24,80 @@ impl<'a> Router<'a> {
 //Attention: just allow to be called in main start flow.
   pub   fn init_shard_router( c: Option<& Config>) -> Result<Arc<Router> ,String > {
 
-      c.map(|cfg| {
+    if let Some(ref cfg) = c {
 
-            let mut table = Box::new(RouterTable{table_entry:HashMap::new()});
-            for x in cfg.db_shard_schema_list.as_ref().unwrap().iter() {
+        let mut table = Box::new(RouterTable{table_entry:HashMap::new()});
 
-                let key = format!("{}-{}-{}",x.owner.as_ref().unwrap() , x.db.as_ref().unwrap() ,x.table.as_ref().unwrap());
-                
-                table.table_entry.insert(key, RouterTableEntry{
+        for x in cfg.db_shard_schema_list.as_ref().unwrap().iter() {
 
-                        owner: x.owner.as_ref().unwrap().clone(),
-                        db: x.db.as_ref().unwrap().clone(),
-                        table: x.table.as_ref().unwrap().clone(),
-                        shard_key: x.shard_key.as_ref().unwrap().clone(),
-                        shard_type: x.shard_type.as_ref().map(|s|{
-                            match s.as_str().to_lowercase().trim() {
-                                "hash" => ShardType::Hash,
-                                "integer_range" => ShardType::IntegerRange,
-                                "integer" => ShardType::Integer,
-                                _ => ShardType::Unknown,
-                            } 
-                        }).unwrap(),
-                        
-                        cluster_list: x.db_cluster_id_list.as_ref().map(| cc |{
-                            let mut vec: Vec<DBCluster> = Vec::new();
-                            for (pos , s) in cc.iter().enumerate() {
-                                let ccfg = cfg.get_db_cluster(s);
+            let key = format!("{}-{}-{}",x.owner.as_ref().unwrap() , x.db.as_ref().unwrap() ,x.table.as_ref().unwrap());
+            
+            table.table_entry.insert(key, RouterTableEntry{
 
-                                let table_split_count = x.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
-                                    tsc[pos]
-                                });
+                    owner: x.owner.as_ref().unwrap().clone(),
+                    db: x.db.as_ref().unwrap().clone(),
+                    table: x.table.as_ref().unwrap().clone(),
+                    shard_key: x.shard_key.as_ref().unwrap().clone(),
+                    shard_type: x.shard_type.as_ref().map(|s|{
+                        match s.as_str().to_lowercase().trim() {
+                            "hash" => ShardType::Hash,
+                            "integer_range" => ShardType::IntegerRange,
+                            "integer" => ShardType::Integer,
+                            _ => ShardType::Unknown,
+                        } 
+                    }).unwrap(),
+                    
+                    cluster_list: x.db_cluster_id_list.as_ref().map(| cc |{
+                        let mut vec: Vec<DBCluster> = Vec::new();
+                        for (pos , s) in cc.iter().enumerate() {
+                            let ccfg = cfg.get_db_cluster(s);
 
-                                let mut slave_n_vec: Vec<DBNode> = Vec::new();
-                                for n in ccfg.as_ref().unwrap().slave_node_id_list.as_ref().unwrap().iter() {
-                                    slave_n_vec.push(DBNode{node_cfg: cfg.get_db_node(n).unwrap().clone(),});
-                                }
-                                vec.push(DBCluster{
-                                    id: s.clone(),
-                                    cluster_table_split_count: table_split_count,
-                                    slave_node_list: slave_n_vec,
-                                    master_node: DBNode{ node_cfg:  cfg.get_db_node(ccfg.as_ref().unwrap().master_node_id.as_ref().unwrap()).unwrap().clone()},
-                                });
-                            } 
-                            vec
-                        }).unwrap(),
+                            let table_split_count = x.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
+                                tsc[pos]
+                            });
 
-                        integer_range: x.integer_range.as_ref().map(|i|{
-                            let mut v : Vec<Range<u128>> = Vec::new();
-                            let range_sum = i.len() / 2;
-                            x.db_cluster_id_list.as_ref().and_then(move |l| {
-                                if range_sum != l.len() {
-                                     return None
-                                }
-                                Some(range_sum)
-                            }).unwrap();
-
-                            for pair in i.chunks(2) {
-                                let start = u128::from_str_radix( &pair[0], 10).unwrap();
-                                let end = u128::from_str_radix( &pair[1], 10).unwrap();
-                                v.push(Range{
-                                     start: start,
-                                     end: end,
-                                } );
+                            let mut slave_n_vec: Vec<DBNode> = Vec::new();
+                            for n in ccfg.as_ref().unwrap().slave_node_id_list.as_ref().unwrap().iter() {
+                                slave_n_vec.push(DBNode{node_cfg: cfg.get_db_node(n).unwrap().clone(),});
                             }
-                            v
-                        }),
+                            vec.push(DBCluster{
+                                id: s.clone(),
+                                cluster_table_split_count: table_split_count,
+                                slave_node_list: slave_n_vec,
+                                master_node: DBNode{ node_cfg:  cfg.get_db_node(ccfg.as_ref().unwrap().master_node_id.as_ref().unwrap()).unwrap().clone()},
+                            });
+                        } 
+                        vec
+                    }).unwrap(),
 
-                });
-            }
+                    integer_range: x.integer_range.as_ref().map(|i|{
+                        let mut v : Vec<Range<u128>> = Vec::new();
+                        let range_sum = i.len() / 2;
+                        x.db_cluster_id_list.as_ref().and_then(move |l| {
+                            if range_sum != l.len() {
+                                 return None
+                            }
+                            Some(range_sum)
+                        }).unwrap();
 
-            Arc::new(Router{cfg: cfg, table: table})
-        }).ok_or("build router table failed!".to_string())
+                        for pair in i.chunks(2) {
+                            let start = u128::from_str_radix( &pair[0], 10).unwrap();
+                            let end = u128::from_str_radix( &pair[1], 10).unwrap();
+                            v.push(Range{
+                                 start: start,
+                                 end: end,
+                            } );
+                        }
+                        v
+                    }),
 
+            });
+        }
+
+        return Ok(Arc::new(Router{table: table}));
+    }
+
+     panic!("There is no config::Config!".to_string());
     }
 
 

@@ -16,8 +16,8 @@ fn main() {
     //2. init shard router
     let shard_r = router::init_shard_router(Some(&cfg)).unwrap();
     //test start
-    //println!("{:#?}",shard_r );
-    shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
+    println!("{:#?}",shard_r );
+    /*shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
         let road = entry.find_router_path("1234567");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
@@ -36,7 +36,7 @@ fn main() {
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    });
+    });*/
     //test end.
     //3. run proxy server
     proxy::ProxyServer::new(Some(&cfg));
