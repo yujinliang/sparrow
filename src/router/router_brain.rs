@@ -149,9 +149,19 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                      return None;
                                                  }               
 
+                                                 let mut parsed_fail = false;
                                                 for pair in i.chunks(2) {
-                                                        let start = u128::from_str_radix( &pair[0], 10).unwrap();
-                                                        let end = u128::from_str_radix( &pair[1], 10).unwrap();
+                                                        let start = u128::from_str_radix( &pair[0], 10).unwrap_or_else(|_|{
+                                                            parsed_fail = true;
+                                                            0
+                                                        });
+                                                        let end = u128::from_str_radix( &pair[1], 10).unwrap_or_else(|_|{
+                                                            parsed_fail = true;
+                                                            0
+                                                        });
+                                                        if parsed_fail {
+                                                            return None;
+                                                        }
                                                         v.push(Range{
                                                                  start: start,
                                                                  end: end,
