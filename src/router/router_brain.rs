@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::ops::Range;
+use super::error::ShardRouterError;
 
 #[derive(Debug)]
 pub struct Router {
@@ -21,83 +22,161 @@ impl Router {
         self.table.table_entry.get(key)
     }
 }
-//Attention: just allow to be called in main start flow.
-  pub   fn load_shard_router( c: Option<& Config>) -> Result<Arc<Router> ,String > {
+//Attention: just allow to be called in main start flow, should panic!
+pub   fn load_shard_router( config: Option<& Config>) -> Result<Arc<Router> ,ShardRouterError > {
+  build_router(config)
+}
+//not allow panic, just return Error
+pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRouterError> {
 
-    if let Some(ref cfg) = c {
+    if let Some(ref cfg) = config {
+        if let Some(ref schema_vec) = cfg.db_shard_schema_list.as_ref() {
+            let mut router_table = Box::new(RouterTable{table_entry:HashMap::new()});
+            //-------------------------------------------------------------------------------------------------------------------
+            for schema in schema_vec.iter() {
+            //--
+            let owner = schema.owner.as_ref()
+                                                                  .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no owner in shard schema config!".to_string()))
+                                                                 .and_then(|s|{ 
+                                                                            if s.trim().len() <= 0 {
+                                                                                     return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the owner in shard schema config!".to_string()));
+                                                                             }
+                                                                            Ok(s)
+                                                                 })?;
+            //--
+            let db = schema.db.as_ref()
+                                                    .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no db in shard schema config!".to_string()))
+                                                    .and_then(|s|{ 
+                                                            if s.trim().len() <= 0 {
+                                                                    return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the db in shard schema config!".to_string()));
+                                                            }
+                                                         Ok(s)
+                                                    })?;
+            //---
+            let table = schema.table.as_ref()
+                                                             .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no table in shard schema config!".to_string()))
+                                                            .and_then(|s|{ 
+                                                                    if s.trim().len() <= 0 {
+                                                                            return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the table in shard schema config!".to_string()));
+                                                                     }
+                                                                    Ok(s)
+                                                            })?;
+            //---
+            let shard_key = schema.shard_key.as_ref()
+                                                                                .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no shard_key in shard schema config!".to_string()))
+                                                                                .and_then(|s|{ 
+                                                                                             if s.trim().len() <= 0 {
+                                                                                                    return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the shard_key in shard schema config!".to_string()));
+                                                                                             }
+                                                                                            Ok(s)
+                                                                                 })?;     
+                                                                                 
+            //----
+            let shard_type = schema.shard_type.as_ref()
+                                                                                        .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no shard_type in shard schema config!".to_string()))
+                                                                                        .and_then(|s|{ 
+                                                                                                    if s.trim().len() <= 0 {
+                                                                                                                return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the shard_type in shard schema config!".to_string()));
+                                                                                                     }
+                                                                                                     Ok(s)
+                                                                                        })
+                                                                                        .and_then(|s|{
+                                                                                             match s.as_str().to_lowercase().trim() {
+                                                                                                "hash" => Ok(ShardType::Hash),
+                                                                                                "integer_range" => Ok(ShardType::IntegerRange),
+                                                                                                "integer" => Ok(ShardType::Integer),
+                                                                                                _ => {
+                                                                                                            Err(ShardRouterError::ShardSchemaParameterILL("There is a wrong shard_type string in shard schema config!".to_string()))
+                                                                                                        },
+                                                                                            } 
+                                                                                        })?;
+            //-----
+            let cluster_list = schema.db_cluster_id_list.as_ref()
+                                                                                                    .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no db cluster id list in shard schema config!".to_string()))
+                                                                                                    .and_then(|cluster_id_vec|{
+                                                                                                        let mut vec: Vec<DBCluster> = Vec::new();
+                                                                                                        for (pos , s) in cluster_id_vec.iter().enumerate() {
+                                                                                                            let ccfg = cfg.get_db_cluster(s).ok_or(ShardRouterError::NoClusterConfig(s.clone()))?;
+                                                                                                            //---
+                                                                                                            let table_split_count = schema.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
+                                                                                                                tsc[pos]
+                                                                                                            });
+                                                                                                            //---
+                                                                                                            let mut slave_n_vec: Vec<DBNode> = Vec::new();
+                                                                                                            ccfg.slave_node_id_list
+                                                                                                                    .as_ref()
+                                                                                                                    .ok_or_else(|| { ShardRouterError::NoNodeConfig("slave node list is empty!".to_string())})
+                                                                                                                    .and_then(|slave_id_vec|{
+                                                                                                                            for n in slave_id_vec.iter() {
+                                                                                                                                cfg.get_db_node(n)
+                                                                                                                                      .ok_or(ShardRouterError::NoNodeConfig(n.clone()))
+                                                                                                                                      .and_then(|node_cfg|{
+                                                                                                                                            slave_n_vec.push(DBNode{node_cfg: node_cfg.clone(),});
+                                                                                                                                            Ok(())
+                                                                                                                                      })?;
+                                                                                                                            }
+                                                                                                                          Ok(())
+                                                                                                                    })?;
+                                                                                                            //---
+                                                                                                            let master_n = ccfg.master_node_id
+                                                                                                                                                    .as_ref()
+                                                                                                                                                    .ok_or_else(||{ShardRouterError::NoNodeConfig("master node id is emtpy".to_string())})
+                                                                                                                                                    .and_then(|s|{
+                                                                                                                                                        cfg.get_db_node(&s)
+                                                                                                                                                               .ok_or_else(||{
+                                                                                                                                                                    ShardRouterError::NoNodeConfig(s.clone())
+                                                                                                                                                               })
+                                                                                                                                                    })?;
+                                                                                                            //--
+                                                                                                            vec.push(DBCluster{
+                                                                                                                id: s.clone(),
+                                                                                                                cluster_table_split_count: table_split_count,
+                                                                                                                slave_node_list: slave_n_vec,
+                                                                                                                master_node: DBNode{ node_cfg:  master_n.clone()},
+                                                                                                            });
+                                                                                                        } 
+                                                                                                        Ok(vec)
+                                                                                                    })?;
+                //---
+                let key = format!("{}-{}-{}", owner, db, table);   
+                let int_range = schema.integer_range
+                                 .as_ref()
+                                 .and_then(|i|{
+                                                let mut v : Vec<Range<u128>> = Vec::new();                         
+                                                let range_sum = i.len() / 2;
+                                                let cluster_sum = schema.db_cluster_id_list.as_ref().map_or(0, |l|{l.len()});
+                                                 if range_sum != cluster_sum {
+                                                     return None;
+                                                 }               
 
-        let mut table = Box::new(RouterTable{table_entry:HashMap::new()});
-
-        for x in cfg.db_shard_schema_list.as_ref().unwrap().iter() {
-
-            let key = format!("{}-{}-{}",x.owner.as_ref().unwrap() , x.db.as_ref().unwrap() ,x.table.as_ref().unwrap());
-            
-            table.table_entry.insert(key, RouterTableEntry{
-
-                    owner: x.owner.as_ref().unwrap().clone(),
-                    db: x.db.as_ref().unwrap().clone(),
-                    table: x.table.as_ref().unwrap().clone(),
-                    shard_key: x.shard_key.as_ref().unwrap().clone(),
-                    shard_type: x.shard_type.as_ref().map(|s|{
-                        match s.as_str().to_lowercase().trim() {
-                            "hash" => ShardType::Hash,
-                            "integer_range" => ShardType::IntegerRange,
-                            "integer" => ShardType::Integer,
-                            _ => ShardType::Unknown,
-                        } 
-                    }).unwrap(),
-                    
-                    cluster_list: x.db_cluster_id_list.as_ref().map(| cc |{
-                        let mut vec: Vec<DBCluster> = Vec::new();
-                        for (pos , s) in cc.iter().enumerate() {
-                            let ccfg = cfg.get_db_cluster(s);
-
-                            let table_split_count = x.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
-                                tsc[pos]
-                            });
-
-                            let mut slave_n_vec: Vec<DBNode> = Vec::new();
-                            for n in ccfg.as_ref().unwrap().slave_node_id_list.as_ref().unwrap().iter() {
-                                slave_n_vec.push(DBNode{node_cfg: cfg.get_db_node(n).unwrap().clone(),});
-                            }
-                            vec.push(DBCluster{
-                                id: s.clone(),
-                                cluster_table_split_count: table_split_count,
-                                slave_node_list: slave_n_vec,
-                                master_node: DBNode{ node_cfg:  cfg.get_db_node(ccfg.as_ref().unwrap().master_node_id.as_ref().unwrap()).unwrap().clone()},
-                            });
-                        } 
-                        vec
-                    }).unwrap(),
-
-                    integer_range: x.integer_range.as_ref().map(|i|{
-                        let mut v : Vec<Range<u128>> = Vec::new();
-                        let range_sum = i.len() / 2;
-                        x.db_cluster_id_list.as_ref().and_then(move |l| {
-                            if range_sum != l.len() {
-                                 return None
-                            }
-                            Some(range_sum)
-                        }).unwrap();
-
-                        for pair in i.chunks(2) {
-                            let start = u128::from_str_radix( &pair[0], 10).unwrap();
-                            let end = u128::from_str_radix( &pair[1], 10).unwrap();
-                            v.push(Range{
-                                 start: start,
-                                 end: end,
-                            } );
-                        }
-                        v
-                    }),
-
-            });
+                                                for pair in i.chunks(2) {
+                                                        let start = u128::from_str_radix( &pair[0], 10).unwrap();
+                                                        let end = u128::from_str_radix( &pair[1], 10).unwrap();
+                                                        v.push(Range{
+                                                                 start: start,
+                                                                 end: end,
+                                                        } );
+                                                 }
+                                                 return Some(v);                                                           
+                                 });
+                    //-----
+                    router_table.table_entry.insert(key, RouterTableEntry{
+                        owner: owner.clone(),
+                        db: db.clone(),
+                        table: table.clone(),
+                        shard_key: shard_key.clone(),
+                        shard_type: shard_type,        
+                        cluster_list: cluster_list,
+                        integer_range: int_range,
+                     });
+            }
+            //------------------------------------------------------------------------------------------------------------------
+            return Ok(Arc::new(Router{table: router_table}));
         }
-
-        return Ok(Arc::new(Router{table: table}));
+        return Err(ShardRouterError::NoShardSchemaConfig);   
     }
 
-     panic!("There is no config::Config!".to_string());
+    Err(ShardRouterError::NoConfig)
     }
 
 
