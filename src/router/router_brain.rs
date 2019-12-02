@@ -169,6 +169,9 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                  }
                                                  return Some(v);                                                           
                                  });
+                    if  shard_type == ShardType::IntegerRange &&  int_range.is_none() {
+                        return Err(ShardRouterError::ShardSchemaIntegerRangeILL(key.clone()));
+                    }
                     //-----
                     router_table.table_entry.insert(key, RouterTableEntry{
                         owner: owner.clone(),
@@ -196,7 +199,7 @@ struct RouterTable {
     table_entry: HashMap<String, RouterTableEntry>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 enum ShardType {
     IntegerRange,
     Integer,
@@ -231,18 +234,18 @@ pub struct RouterTableEntry {
 impl RouterTableEntry {
 
     #[inline]
-    pub fn get_default_cluster(&self) -> &DBCluster {
+    pub fn get_default_routing_path(&self) -> &DBCluster {
 
         &self.cluster_list[0]
     }
 
     #[inline]
-    pub fn get_all_cluster(&self) -> &Vec<DBCluster>  {
+    pub fn get_all_routing_path(&self) -> &Vec<DBCluster>  {
 
         &self.cluster_list
     }
 
-    pub fn find_router_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
+    pub fn find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
 
         match self.shard_type {
 
@@ -291,7 +294,7 @@ impl RouterTableEntry {
                                  }
                             } 
                     }
-                    return Some(( self.get_default_cluster(), self.table.clone()));
+                    return Some(( self.get_default_routing_path(), self.table.clone()));
                 }
                 None
             },
