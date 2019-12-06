@@ -16,27 +16,27 @@ fn main() {
     //2. init shard router
     let shard_r = router::load_shard_router(Some(&cfg)).unwrap();
     //test start
-    println!("{:#?}",shard_r );
+   // println!("{:#?}",shard_r );
     /*shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
-        let road = entry.find_router_path("1234567");
+        let road = entry.find_routing_path("1234567");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
     }).unwrap_or_default();
     //------------
     shard_r.get_table_entry("root-test_db-hash_table").and_then(| entry |{
-        let road = entry.find_router_path("hello4569233");
+        let road = entry.find_routing_path("hello4569233");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    }).unwrap_or_default();
+    }).unwrap_or_default();*/
     //------------------
     shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
-        let road = entry.find_router_path("20201102");
+        let road = entry.find_routing_path("20201102");
         print!("----------------------------------------------------------------\n" );
         println!("{:#?}", road);
         Some(())
-    });*/
+    });
     //test end.
     //3. run proxy server
     proxy::ProxyServer::new(Some(&cfg));

@@ -234,17 +234,11 @@ pub struct RouterTableEntry {
 impl RouterTableEntry {
 
     #[inline]
-    pub fn get_default_routing_path(&self) -> &DBCluster {
-
-        &self.cluster_list[0]
-    }
-
-    #[inline]
     pub fn get_all_routing_path(&self) -> &Vec<DBCluster>  {
 
         &self.cluster_list
     }
-
+    
     pub fn find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
 
         match self.shard_type {
@@ -290,11 +284,25 @@ impl RouterTableEntry {
                             let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                             for (idx, r )in v.iter().enumerate() {
                                  if r.contains(&shard_u128) {
-                                         return Some((&self.cluster_list[idx as usize], self.table.clone()));
+                                    let cluster : &DBCluster = &self.cluster_list[idx];
+                                    if cluster.cluster_table_split_count > 1 {
+                                        let table_idx = shard_u128 % cluster.cluster_table_split_count as u128;
+                                        let table_final_name = format!("{}_{}", self.table, table_idx);
+                                        return Some(( cluster, table_final_name));
+                                    }
+                                    else {
+                                        return Some(( cluster, self.table.clone()));
+                                    }
                                  }
-                            } 
+                            }   
                     }
-                    return Some(( self.get_default_routing_path(), self.table.clone()));
+                    //not in range.
+                    let cluster : &DBCluster = &self.cluster_list[0];
+                     if cluster.cluster_table_split_count > 1 {
+                            let table_final_name = format!("{}_{}", self.table, 0);
+                            return Some(( cluster, table_final_name));
+                    } 
+                    return Some(( cluster, self.table.clone()));
                 }
                 None
             },
