@@ -204,7 +204,6 @@ enum ShardType {
     IntegerRange,
     Integer,
     Hash,
-    Unknown,
 }
 
 #[derive(Debug)]
@@ -234,9 +233,22 @@ pub struct RouterTableEntry {
 impl RouterTableEntry {
 
     #[inline]
-    pub fn get_all_routing_path(&self) -> &Vec<DBCluster>  {
+    pub fn get_all_routing_path(&self) -> Option< Vec<( &DBCluster, String )> >  {
 
-        &self.cluster_list
+      if self.cluster_list.len() <= 0 {
+          return None;
+      }
+      let mut v : Vec<( &DBCluster, String )> = Vec::new();
+      for c in self.cluster_list.iter() {   
+        if c.cluster_table_split_count > 1 {
+            for i in 0..c.cluster_table_split_count {
+                let table_shard_name = format!("{}_{}", self.table, i);
+                v.push((c, table_shard_name));
+            }
+        }
+        v.push((c, self.table.clone()));
+      }
+      Some(v)
     }
     
     pub fn find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
