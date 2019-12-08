@@ -233,6 +233,7 @@ pub struct RouterTableEntry {
 impl RouterTableEntry {
 
     #[inline]
+    #[allow(dead_code)]
     pub fn get_all_routing_path(&self) -> Option< Vec<( &DBCluster, String )> >  {
 
       if self.cluster_list.len() <= 0 {
@@ -318,7 +319,7 @@ impl RouterTableEntry {
                 }
                 None
             },
-            _ =>  None,
+            
         }
 
     }
