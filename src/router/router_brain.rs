@@ -17,9 +17,10 @@ pub struct Router {
 impl Router {
 
     //key: proxy user + '-' + db + '-' + 'table' 
-    pub fn get_table_entry(&self, key : &str) -> Option<&RouterTableEntry> {
+    pub fn find_routing_path(&self, proxy_user:&str, db:&str, table:&str, shard_key:&str) ->  Option< ( &DBCluster, String ) > {
 
-        self.table.table_entry.get(key)
+        let key  = format!("{}-{}-{}",proxy_user, db, table );
+        self.table.table_entry.get(&key).and_then(| entry | { entry.do_find_routing_path(shard_key)})
     }
 }
 //Attention: just allow to be called in main start flow, should panic!
@@ -36,36 +37,36 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
             for schema in schema_vec.iter() {
             //--
             let owner = schema.owner.as_ref()
-                                                                  .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no owner in shard schema config!".to_string()))
+                                                                  .ok_or_else( || ShardRouterError::ShardSchemaParameterILL("There is no owner in shard schema config!".to_string()))
                                                                  .and_then(|s|{ 
-                                                                            if s.trim().len() <= 0 {
+                                                                            if s.trim().is_empty() {
                                                                                      return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the owner in shard schema config!".to_string()));
                                                                              }
                                                                             Ok(s)
                                                                  })?;
             //--
             let db = schema.db.as_ref()
-                                                    .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no db in shard schema config!".to_string()))
+                                                    .ok_or_else( || ShardRouterError::ShardSchemaParameterILL("There is no db in shard schema config!".to_string()))
                                                     .and_then(|s|{ 
-                                                            if s.trim().len() <= 0 {
+                                                            if s.trim().is_empty() {
                                                                     return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the db in shard schema config!".to_string()));
                                                             }
                                                          Ok(s)
                                                     })?;
             //---
             let table = schema.table.as_ref()
-                                                             .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no table in shard schema config!".to_string()))
+                                                             .ok_or_else( || ShardRouterError::ShardSchemaParameterILL("There is no table in shard schema config!".to_string()))
                                                             .and_then(|s|{ 
-                                                                    if s.trim().len() <= 0 {
+                                                                   if s.trim().is_empty() {
                                                                             return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the table in shard schema config!".to_string()));
                                                                      }
                                                                     Ok(s)
                                                             })?;
             //---
             let shard_key = schema.shard_key.as_ref()
-                                                                                .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no shard_key in shard schema config!".to_string()))
+                                                                                .ok_or_else( || ShardRouterError::ShardSchemaParameterILL("There is no shard_key in shard schema config!".to_string()))
                                                                                 .and_then(|s|{ 
-                                                                                             if s.trim().len() <= 0 {
+                                                                                             if s.trim().is_empty() {
                                                                                                     return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the shard_key in shard schema config!".to_string()));
                                                                                              }
                                                                                             Ok(s)
@@ -73,9 +74,9 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                                                  
             //----
             let shard_type = schema.shard_type.as_ref()
-                                                                                        .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no shard_type in shard schema config!".to_string()))
+                                                                                        .ok_or_else( || ShardRouterError::ShardSchemaParameterILL("There is no shard_type in shard schema config!".to_string()))
                                                                                         .and_then(|s|{ 
-                                                                                                    if s.trim().len() <= 0 {
+                                                                                                    if s.trim().is_empty() {
                                                                                                                 return Err(ShardRouterError::ShardSchemaParameterILL("There is a zero length of the shard_type in shard schema config!".to_string()));
                                                                                                      }
                                                                                                      Ok(s)
@@ -92,11 +93,11 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                                                         })?;
             //-----
             let cluster_list = schema.db_cluster_id_list.as_ref()
-                                                                                                    .ok_or(ShardRouterError::ShardSchemaParameterILL("There is no db cluster id list in shard schema config!".to_string()))
+                                                                                                    .ok_or_else(|| ShardRouterError::ShardSchemaParameterILL("There is no db cluster id list in shard schema config!".to_string()))
                                                                                                     .and_then(|cluster_id_vec|{
                                                                                                         let mut vec: Vec<DBCluster> = Vec::new();
                                                                                                         for (pos , s) in cluster_id_vec.iter().enumerate() {
-                                                                                                            let ccfg = cfg.get_db_cluster(s).ok_or(ShardRouterError::NoClusterConfig(s.clone()))?;
+                                                                                                            let ccfg = cfg.get_db_cluster(s).ok_or_else(|| ShardRouterError::NoClusterConfig(s.clone()))?;
                                                                                                             //---
                                                                                                             let table_split_count = schema.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
                                                                                                                 tsc[pos]
@@ -109,7 +110,7 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                                                                                     .and_then(|slave_id_vec|{
                                                                                                                             for n in slave_id_vec.iter() {
                                                                                                                                 cfg.get_db_node(n)
-                                                                                                                                      .ok_or(ShardRouterError::NoNodeConfig(n.clone()))
+                                                                                                                                      .ok_or_else(|| ShardRouterError::NoNodeConfig(n.clone()))
                                                                                                                                       .and_then(|node_cfg|{
                                                                                                                                             slave_n_vec.push(DBNode{node_cfg: node_cfg.clone(),});
                                                                                                                                             Ok(())
@@ -163,14 +164,14 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                                                             return None;
                                                         }
                                                         v.push(Range{
-                                                                 start: start,
-                                                                 end: end,
+                                                                 start,
+                                                                 end,
                                                         } );
                                                  }
-                                                 return Some(v);                                                           
+                                                 Some(v)                                                          
                                  });
                     if  shard_type == ShardType::IntegerRange &&  int_range.is_none() {
-                        return Err(ShardRouterError::ShardSchemaIntegerRangeILL(key.clone()));
+                        return Err(ShardRouterError::ShardSchemaIntegerRangeILL(key));
                     }
                     //-----
                     router_table.table_entry.insert(key, RouterTableEntry{
@@ -178,8 +179,8 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
                         db: db.clone(),
                         table: table.clone(),
                         shard_key: shard_key.clone(),
-                        shard_type: shard_type,        
-                        cluster_list: cluster_list,
+                        shard_type,        
+                        cluster_list,
                         integer_range: int_range,
                      });
             }
@@ -236,7 +237,7 @@ impl RouterTableEntry {
     #[allow(dead_code)]
     pub fn get_all_routing_path(&self) -> Option< Vec<( &DBCluster, String )> >  {
 
-      if self.cluster_list.len() <= 0 {
+      if self.cluster_list.is_empty() {
           return None;
       }
       let mut v : Vec<( &DBCluster, String )> = Vec::new();
@@ -252,7 +253,7 @@ impl RouterTableEntry {
       Some(v)
     }
     
-    pub fn find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
+    pub fn do_find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
 
         match self.shard_type {
 
@@ -292,7 +293,7 @@ impl RouterTableEntry {
             },
             ShardType::IntegerRange => {
             
-                if self.cluster_list.len() > 0 { 
+                if !self.cluster_list.is_empty(){ 
                     if let Some(v) = self.integer_range.as_ref() {
                             let shard_u128 = u128::from_str_radix( shard_key, 10).unwrap_or_default();
                             for (idx, r )in v.iter().enumerate() {

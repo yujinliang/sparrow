@@ -26,8 +26,8 @@ fn main() {
         let compile_time = Utc::now();
 
         //create rust source code file.
-        let  output = format!(r#"pub const COMMIT_ID : &'static str = "{}";
-                                 pub const COMPILE_TIME : &'static str = "{}";"#, commit, compile_time);
+        let  output = format!(r#"pub const COMMIT_ID : &str = "{}";
+                                 pub const COMPILE_TIME : &str = "{}";"#, commit, compile_time);
         f.write_all(output.as_bytes()).unwrap();
 
 }

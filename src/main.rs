@@ -31,10 +31,10 @@ fn main() {
         Some(())
     }).unwrap_or_default();*/
     //------------------
-    shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
-        let road = entry.find_routing_path("20201102");
-        print!("----------------------------------------------------------------\n" );
-        println!("{:#?}", road);
+    //shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
+        shard_r.find_routing_path("root", "sparrow", "ordinal_range_table", "20201102").and_then(| path| {
+        println!("----------------------------------------------------------------\n" );
+        println!("{:#?}", path);
         Some(())
     });
     //test end.
