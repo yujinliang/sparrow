@@ -22,6 +22,14 @@ impl Router {
         let key  = format!("{}-{}-{}",proxy_user, db, table );
         self.table.table_entry.get(&key).and_then(| entry | { entry.do_find_routing_path(shard_key)})
     }
+
+    #[allow(dead_code)]
+    pub fn find_all_routing_path(&self,proxy_user:&str, db:&str, table:&str) -> Option< Vec<( &DBCluster, String )> >  {
+
+        let key  = format!("{}-{}-{}",proxy_user, db, table );
+        self.table.table_entry.get(&key).and_then(| entry | { entry.do_get_all_routing_path()})
+    }
+
 }
 //Attention: just allow to be called in main start flow, should panic!
 pub   fn load_shard_router( config: Option<& Config>) -> Result<Arc<Router> ,ShardRouterError > {
@@ -235,7 +243,7 @@ impl RouterTableEntry {
 
     #[inline]
     #[allow(dead_code)]
-    pub fn get_all_routing_path(&self) -> Option< Vec<( &DBCluster, String )> >  {
+    fn do_get_all_routing_path(&self) -> Option< Vec<( &DBCluster, String )> >  {
 
       if self.cluster_list.is_empty() {
           return None;
@@ -247,13 +255,16 @@ impl RouterTableEntry {
                 let table_shard_name = format!("{}_{}", self.table, i);
                 v.push((c, table_shard_name));
             }
+        } 
+        else {
+             v.push((c, self.table.clone()));
         }
-        v.push((c, self.table.clone()));
+
       }
       Some(v)
     }
     
-    pub fn do_find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
+    fn do_find_routing_path(&self, shard_key : &str) -> Option< ( &DBCluster, String ) > {
 
         match self.shard_type {
 
