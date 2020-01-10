@@ -5,19 +5,16 @@ pub type MysqlResult<T> = std::result::Result<T, MysqlError>;
 #[derive(Debug, Fail)]
 pub enum MysqlError {
     #[fail(display = "invalid mysql packet header")]
-    InvalidMysqlPacketHeader,
+    InvalidPacketHeader,
 
-    #[fail(display = "invalid mysql packet payload len")]
-    InvalidMysqlPacketPayloadLen,
+    #[fail(display = "mysql packet sequence mismatch")]
+    MismatchPacketSequence,
 
-    #[fail(display = "invalid mysql packet Sequence")]
-    InvalidMysqlPacketSequence,
+    #[fail(display = "Incomplete mysql packet payload")]
+    IncompletePacketPayload,
 
-    #[fail(display = "invalid mysql packet payload")]
-    InvalidMysqlPacketPayload,
-
-    #[fail(display = "invalid mysql  zero payload")]
-    ErrMysqlZeroPayload,
+    #[fail(display = "mysql  zero payload")]
+    PacketlZeroPayload,
 
     #[fail(display = "std::io::Error: {}", other)]
     Io { other: std::io::Error,}

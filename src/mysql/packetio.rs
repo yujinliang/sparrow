@@ -30,11 +30,11 @@ impl  PacketIO {
                         let mut header = [0u8; 4];
                          let n = self.stream.read_exact(&mut header).await?;      
                         if n != 4 {
-                                return Err(MysqlError::InvalidMysqlPacketHeader);
+                                return Err(MysqlError::InvalidPacketHeader);
                         }
             
                          if header[3] != self.sequence {
-                                    return Err(MysqlError::InvalidMysqlPacketSequence);
+                                    return Err(MysqlError::MismatchPacketSequence);
                          }
 
                         self.sequence += 1;
@@ -47,7 +47,7 @@ impl  PacketIO {
                     if payload_len == 0 {
                                 // there was no previous packet
                                 if prev_data.is_empty() {
-                                    return Err(MysqlError::ErrMysqlZeroPayload);
+                                    return Err(MysqlError::PacketlZeroPayload);
                                 }
                                 return Ok(prev_data);
                         }
@@ -55,7 +55,7 @@ impl  PacketIO {
                         let mut buf =vec![0; payload_len];
                         let n = self.stream.read_exact(&mut buf).await?;      
                         if n != payload_len  {
-                                return Err(MysqlError::InvalidMysqlPacketPayload);
+                                return Err(MysqlError::IncompletePacketPayload);
                         }
                         if payload_len < MAX_PAYLOAD_LEN {
                                 if prev_data.is_empty() {
