@@ -5,10 +5,11 @@
 // license <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
+use bitflags::*;
 
 pub static MAX_PAYLOAD_LEN: usize = 16_777_215;
 pub static DEFAULT_MAX_ALLOWED_PACKET: usize = 4 * 1024 * 1024;
-pub static MIN_COMPRESS_LENGTH: usize = 50;
+
 
 pub static UTF8_GENERAL_CI: u16 = 33;
 pub static UTF8MB4_GENERAL_CI: u16 = 45;

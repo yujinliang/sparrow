@@ -12,6 +12,9 @@ build="build.rs"
 toml = "0.5"
 serde = { version = "1.0.102", features = ["derive"] }
 bitflags = "1.2.1"
+byteorder = "1.3.2"
+tokio = { version = "0.2.8", features = ["full"] }
+failure = "0.1.6"
 
 
 [build-dependencies]

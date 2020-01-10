@@ -1,9 +1,12 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
+use tokio::prelude::*;
 mod config;
 mod router;
 mod proxy;
+mod mysql;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     
     println!("--Sparrow mysql/mariadb proxy running!--");
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
