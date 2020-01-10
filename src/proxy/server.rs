@@ -1,3 +1,4 @@
+#![allow(dead_code)] 
 use crate::config::Config;
 
 #[derive(Debug)]
@@ -12,5 +13,8 @@ impl<'a> ProxyServer<'a> {
         ProxyServer{cfg : c}
     }
 
+    pub fn run(&self) {
+        unimplemented!();
+    } 
 
 }
