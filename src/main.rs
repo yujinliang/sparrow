@@ -1,5 +1,4 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
-use tokio::prelude::*;
 mod config;
 mod router;
 mod proxy;

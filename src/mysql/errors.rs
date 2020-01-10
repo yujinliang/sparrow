@@ -1,3 +1,4 @@
+#![allow(dead_code)] 
 use failure::{Fail};
 
 pub type MysqlResult<T> = std::result::Result<T, MysqlError>;

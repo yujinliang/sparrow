@@ -1,7 +1,8 @@
+#![allow(dead_code)] 
 use tokio::net::TcpStream;
 use tokio::prelude::*;
 use std::io::Cursor;
-use byteorder::{LittleEndian as LE, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian as LE, WriteBytesExt};
 use super::errors::{MysqlError, MysqlResult};
 use super::constants::{MAX_PAYLOAD_LEN};
 
@@ -50,7 +51,7 @@ impl  PacketIO {
                                     return Err(MysqlError::PacketlZeroPayload);
                                 }
                                 return Ok(prev_data);
-                        }
+                    }
 
                         let mut buf =vec![0; payload_len];
                         let n = self.stream.read_exact(&mut buf).await?;      
