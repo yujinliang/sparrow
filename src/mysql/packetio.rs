@@ -29,8 +29,11 @@ impl  PacketIO {
         let mut prev_data : Vec<u8> = Vec::new();
         loop {
                         let mut header = [0u8; 4];
-                         let n = self.stream.read_exact(&mut header).await?;      
-                        if n != 4 {
+                         let n = self.stream.read_exact(&mut header).await?; 
+                         if n == 0 { //mean socket is closed.
+                                return Err(MysqlError::ConnClosed);
+                         }     
+                        else if n != 4 {
                                 return Err(MysqlError::InvalidPacketHeader);
                         }
             

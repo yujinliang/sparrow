@@ -5,6 +5,10 @@ pub type MysqlResult<T> = std::result::Result<T, MysqlError>;
 
 #[derive(Debug, Fail)]
 pub enum MysqlError {
+
+    #[fail(display = "mysql  tcp/ip connection closed")]
+    ConnClosed,
+
     #[fail(display = "invalid mysql packet header")]
     InvalidPacketHeader,
 
