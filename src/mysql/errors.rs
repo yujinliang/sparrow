@@ -6,17 +6,8 @@ pub type MysqlResult<T> = std::result::Result<T, MysqlError>;
 #[derive(Debug, Fail)]
 pub enum MysqlError {
 
-    #[fail(display = "mysql  tcp/ip connection closed")]
-    ConnClosed,
-
-    #[fail(display = "invalid mysql packet header")]
-    InvalidPacketHeader,
-
     #[fail(display = "mysql packet sequence mismatch")]
     MismatchPacketSequence,
-
-    #[fail(display = "Incomplete mysql packet payload")]
-    IncompletePacketPayload,
 
     #[fail(display = "mysql  zero payload")]
     PacketlZeroPayload,
@@ -26,7 +17,7 @@ pub enum MysqlError {
 
 }
 
-impl From<std::io::Error> for MysqlError {
+impl From<async_std::io::Error> for MysqlError {
     fn from(e : std::io::Error) -> Self {
             MysqlError::Io{other:e}
     }

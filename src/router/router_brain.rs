@@ -1,3 +1,4 @@
+#![allow(dead_code)] 
 use crate::config::Config;
 use crate::config::DBNodeConfig;
 use std::result::Result;
@@ -32,13 +33,12 @@ impl Router {
 
 }
 //Attention: just allow to be called in main start flow, should panic!
-pub   fn load_shard_router( config: Option<& Config>) -> Result<Arc<Router> ,ShardRouterError > {
+pub   fn load_shard_router( config: & Config) -> Result<Arc<Router> ,ShardRouterError > {
   build_router(config)
 }
 //not allow panic, just return Error
-pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRouterError> {
+pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
 
-    if let Some(ref cfg) = config {
         if let Some(ref schema_vec) = cfg.db_shard_schema_list.as_ref() {
             let mut router_table = Box::new(RouterTable{table_entry:HashMap::new()});
             //-------------------------------------------------------------------------------------------------------------------
@@ -196,9 +196,7 @@ pub fn build_router( config: Option<& Config>) -> Result<Arc<Router> , ShardRout
             return Ok(Arc::new(Router{table: router_table}));
         }
         return Err(ShardRouterError::NoShardSchemaConfig);   
-    }
 
-    Err(ShardRouterError::NoConfig)
     }
 
 

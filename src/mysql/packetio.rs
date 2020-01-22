@@ -1,10 +1,10 @@
 #![allow(dead_code)] 
-use tokio::net::TcpStream;
-use tokio::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian as LE, WriteBytesExt};
 use super::errors::{MysqlError, MysqlResult};
 use super::constants::{MAX_PAYLOAD_LEN};
+use async_std::prelude::*;
+use async_std::net::{TcpStream};
 
 #[derive(Debug)]
 pub struct  PacketIO {
@@ -29,14 +29,7 @@ impl  PacketIO {
         let mut prev_data : Vec<u8> = Vec::new();
         loop {
                         let mut header = [0u8; 4];
-                         let n = self.stream.read_exact(&mut header).await?; 
-                         if n == 0 { //mean socket is closed.
-                                return Err(MysqlError::ConnClosed);
-                         }     
-                        else if n != 4 {
-                                return Err(MysqlError::InvalidPacketHeader);
-                        }
-            
+                         self.stream.read_exact(&mut header).await?; 
                          if header[3] != self.sequence {
                                     return Err(MysqlError::MismatchPacketSequence);
                          }
@@ -57,10 +50,7 @@ impl  PacketIO {
                     }
 
                         let mut buf =vec![0; payload_len];
-                        let n = self.stream.read_exact(&mut buf).await?;      
-                        if n != payload_len  {
-                                return Err(MysqlError::IncompletePacketPayload);
-                        }
+                        self.stream.read_exact(&mut buf).await?;      
                         if payload_len < MAX_PAYLOAD_LEN {
                                 if prev_data.is_empty() {
                                         return Ok(buf);

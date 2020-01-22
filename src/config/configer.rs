@@ -107,3 +107,20 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
 }
 
+impl Config {
+
+        #[inline]
+        pub fn query_log_path(&self) -> Option<&str> {
+                self.global.as_ref()?.log_path.as_deref()
+        }
+        #[inline]
+        pub fn query_log_level(&self) -> Option<&str> {
+            self.global.as_ref()?.log_level.as_deref()
+        }
+        #[inline]
+        pub fn query_proxy_listen_addr(&self) -> Option<&str> {
+            self.proxy.as_ref()?.listen_addr.as_deref()
+        }
+
+}
+

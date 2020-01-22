@@ -1,46 +1,44 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
+use log::{error, warn , info, debug, trace};
 mod config;
 mod router;
 mod proxy;
 mod mysql;
 
-#[tokio::main]
-async fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("--Sparrow mysql/mariadb proxy running!--");
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
     println!("------------------------------------------------------");
 
+    /*Attention: here we use unwrap() directly! , that means all errors in every module  do not allow to propagte to main level !
+       every module log  own errors,  so if  we hit a error in here , then should panic! coz , this is a server ,  need long time to live !  
+       do best to run , no complaint!*/
     //1. config.
     let cfg = config::load_config().unwrap();
-    //println!("{:#?}", cfg );
+      
+    //2 init log module
+ 
 
-    //2. init shard router
-    let shard_r = router::load_shard_router(Some(&cfg)).unwrap();
-    //test start
-   // println!("{:#?}",shard_r );
-    /*shard_r.get_table_entry("root-ordinal_db-integer_table").and_then(| entry |{
-        let road = entry.find_routing_path("1234567");
-        print!("----------------------------------------------------------------\n" );
-        println!("{:#?}", road);
-        Some(())
-    }).unwrap_or_default();
-    //------------
-    shard_r.get_table_entry("root-test_db-hash_table").and_then(| entry |{
-        let road = entry.find_routing_path("hello4569233");
-        print!("----------------------------------------------------------------\n" );
-        println!("{:#?}", road);
-        Some(())
-    }).unwrap_or_default();*/
-    //------------------
-    //shard_r.get_table_entry("root-sparrow-ordinal_range_table").and_then(| entry |{
-        shard_r.find_routing_path("root", "sparrow", "ordinal_range_table", "20201102").and_then(| path| {
-        println!("----------------------------------------------------------------\n" );
-        println!("{:#?}", path);
-        Some(())
-    });
-    //test end.
-    //3. run proxy server
-    proxy::ProxyServer::new(Some(&cfg));
-    //4. run web server.
+    //3. init shard router
+    let shard_r = router::load_shard_router(&cfg).unwrap();
+ 
+    //4. run proxy server
+    let proxy = proxy::ProxyServer::new(&cfg, &shard_r);
+    proxy.run();
+
+    Ok(())
 }
+
+
+fn convert_log_level( level : &str) -> log::LevelFilter  {
+        match level {
+            "error" => log::LevelFilter::Error,
+            "warn" => log::LevelFilter::Warn,
+            "info" => log::LevelFilter::Info,
+            "debug" => log::LevelFilter::Debug,
+            "trace" => log::LevelFilter::Trace,
+            _ => log::LevelFilter::Error,
+        }
+}
+

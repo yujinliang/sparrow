@@ -3,14 +3,14 @@
     #example config.
 
     [global]
-    log_path = "/home/xxx/log/"
-    #log level: debug/info/warn/error, default error.
+    log_path = "/home/yjl/log/output.log"
+    #log level: error/warn/info/debug/trace, default error.
     log_level = "debug"
     #only log query which take time > log_slow_query_time ms.
     log_slow_query_time = 100
 
     [proxy]
-    listen_addr = "0.0.0.0:9696"
+    listen_addr = "127.0.0.1:9696"
     charset = "gbk"
     #proxy user auth.
     proxy_users = [
