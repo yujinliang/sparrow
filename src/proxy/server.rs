@@ -27,7 +27,7 @@ impl<'a> ProxyServer<'a> {
         let mut  incoming = ipv4_listener.incoming();
         while let Some(stream) = incoming.next().await {
             let stream = stream?;
-            task::spawn(async {
+            task::spawn(async move {
                     process(stream).await
              });
          }
