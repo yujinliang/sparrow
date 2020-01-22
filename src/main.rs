@@ -1,5 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
-use log::{error, warn , info, debug, trace};
+use tracing::Level;
+use tracing_subscriber;
 mod config;
 mod router;
 mod proxy;
@@ -18,27 +19,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load_config().unwrap();
       
     //2 init log module
- 
+    tracing_subscriber::FmtSubscriber::builder()
+    // all spans/events with a level higher than TRACE (e.g, info, warn, etc.)
+    // will be written to stdout.
+    .with_max_level(Level::TRACE)
+    // sets this to be the default, global subscriber for this application.
+    .init();
+
+    //tracing::error!("log error");
+    //tracing::warn!("log warn");
+    //tracing::info!("log info");
+    //tracing::debug!("log debug");
+    tracing::trace!("log trace");
 
     //3. init shard router
     let shard_r = router::load_shard_router(&cfg).unwrap();
  
     //4. run proxy server
     let proxy = proxy::ProxyServer::new(&cfg, &shard_r);
-    proxy.run();
+    proxy.run()?;
 
     Ok(())
 }
 
-
-fn convert_log_level( level : &str) -> log::LevelFilter  {
-        match level {
-            "error" => log::LevelFilter::Error,
-            "warn" => log::LevelFilter::Warn,
-            "info" => log::LevelFilter::Info,
-            "debug" => log::LevelFilter::Debug,
-            "trace" => log::LevelFilter::Trace,
-            _ => log::LevelFilter::Error,
-        }
-}
 

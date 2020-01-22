@@ -1,3 +1,4 @@
+#![allow(dead_code)] 
 use serde::{ Deserialize};
 use std::fs::File;
 use std::io::prelude::*;

@@ -195,8 +195,7 @@ pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
             //------------------------------------------------------------------------------------------------------------------
             return Ok(Arc::new(Router{table: router_table}));
         }
-        return Err(ShardRouterError::NoShardSchemaConfig);   
-
+        Err(ShardRouterError::NoShardSchemaConfig)
     }
 
 

@@ -1,27 +1,32 @@
 #![allow(dead_code)] 
-use failure::{Fail};
 
 pub type ProxyResult<T> = std::result::Result<T, ProxyError>;
 
-#[derive(Debug, Fail)]
+#[derive(Debug)]
 pub enum ProxyError {
-
-    #[fail(display = "async_std::io::Error: {}", other)]
-    Io { other: async_std::io::Error,},
-
-    //#[fail(display = "std::option::NoneError: {}", other)]
-    //NoneErr { other: std::option::NoneError,}
-
+    Io(async_std::io::Error),
+    Other(Box<dyn std::error::Error+Send+Sync>),
 }
 
 impl From<async_std::io::Error> for ProxyError {
     fn from(e : async_std::io::Error) -> Self {
-        ProxyError::Io{other:e}
+        ProxyError::Io(e)
     }
 }
 
-//impl From<std::option::NoneError> for ProxyError {
-  //  fn from(e : std::option::NoneError) -> Self {
-   //     ProxyError::NoneErr{other:e}
-  //  }
-//}
+impl std::error::Error for ProxyError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ProxyError::Io(e) => e.source(),
+            ProxyError::Other(e) => e.source(),
+        }
+    }
+}
+impl std::fmt::Display for ProxyError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {  
+            match self {
+                ProxyError::Io(e) => e.fmt(f),
+                ProxyError::Other(e) => e.fmt(f),
+            }
+        }
+}

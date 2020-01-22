@@ -17,7 +17,8 @@ failure = "0.1.6"
 log = "0.4.8"
 chrono = "0.4.10"
 async-std = "1.4.0"
-
+tracing = "0.1"
+tracing-subscriber = "0.1.6"
 
 [build-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
