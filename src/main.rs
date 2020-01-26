@@ -1,10 +1,9 @@
 include!(concat!(env!("OUT_DIR"), "/commit_id.rs"));
-use tracing::Level;
-use tracing_subscriber;
 mod config;
 mod router;
 mod proxy;
 mod mysql;
+use log::info;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     
@@ -19,19 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load_config().unwrap();
       
     //2 init log module
-    tracing_subscriber::FmtSubscriber::builder()
-    // all spans/events with a level higher than TRACE (e.g, info, warn, etc.)
-    // will be written to stdout.
-    .with_max_level(Level::TRACE)
-    // sets this to be the default, global subscriber for this application.
-    .init();
-
-    //tracing::error!("log error");
-    //tracing::warn!("log warn");
-    //tracing::info!("log info");
-    //tracing::debug!("log debug");
-    tracing::trace!("log trace");
-
+    setup_logger();
+    info!("log module init ok!");
     //3. init shard router
     let shard_r = router::load_shard_router(&cfg).unwrap();
  
@@ -42,4 +30,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn setup_logger() {
+    let logger = femme::pretty::Logger::new();
+    async_log::Logger::wrap(logger, || /* get the task id here */ 0)
+        .start(log::LevelFilter::Trace)
+        .unwrap();
+}
 
