@@ -10,7 +10,8 @@ use bitflags::*;
 
 pub static MAX_PAYLOAD_LEN: usize = 16_777_215;
 pub static DEFAULT_MAX_ALLOWED_PACKET: usize = 4 * 1024 * 1024;
-
+pub static SERVER_VERSION : &'static str = "1.0.0-sparrow";
+pub static MIN_PROTOCOL_VERSION : u8 = 10;
 
 pub static UTF8_GENERAL_CI: u16 = 33;
 pub static UTF8MB4_GENERAL_CI: u16 = 45;

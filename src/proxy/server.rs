@@ -6,6 +6,8 @@ use async_std::io;
 use async_std::task;
 use async_std::net::{TcpListener, TcpStream};
 use super::errors::{ProxyResult};
+use log::info;
+use crate::frontend;
 
 #[derive(Debug)]
 pub struct ProxyServer <'a>{
@@ -37,7 +39,7 @@ impl<'a> ProxyServer<'a> {
 } // impl end
 
 async fn process( stream: TcpStream) ->  ProxyResult<()>  {
-    println!("Accepted from: {}", stream.peer_addr()?);
+    info!("Accepted from: {}", stream.peer_addr()?);
 
     let (reader, writer) = &mut (&stream, &stream);
     io::copy(reader, writer).await?;

@@ -3,6 +3,7 @@ mod config;
 mod router;
 mod proxy;
 mod mysql;
+mod frontend;
 use log::info;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
        do best to run , no complaint!*/
     //1. config.
     let cfg = config::load_config().unwrap();
+    info!("Sparrow run commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
       
     //2 init log module
     setup_logger(&cfg);
@@ -23,8 +25,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     //3. init shard router
     let shard_r = router::load_shard_router(&cfg).unwrap();
- 
+    info!("shard router module init ok!");
     //4. run proxy server
+    info!("start to run proxy server!");
     let proxy = proxy::ProxyServer::new(&cfg, &shard_r);
     proxy.run()?;
 
