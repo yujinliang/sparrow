@@ -18,8 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load_config().unwrap();
       
     //2 init log module
-    setup_logger();
+    setup_logger(&cfg);
     info!("log module init ok!");
+    
     //3. init shard router
     let shard_r = router::load_shard_router(&cfg).unwrap();
  
@@ -30,10 +31,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn setup_logger() {
+fn setup_logger(cfg : &config::Config) {
     let logger = femme::pretty::Logger::new();
     async_log::Logger::wrap(logger, || /* get the task id here */ 0)
-        .start(log::LevelFilter::Trace)
+        .start(cfg.query_log_level().unwrap_or(log::LevelFilter::Trace))
         .unwrap();
 }
 

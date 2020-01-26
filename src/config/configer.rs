@@ -114,14 +114,23 @@ impl Config {
         pub fn query_log_path(&self) -> Option<&str> {
                 self.global.as_ref()?.log_path.as_deref()
         }
+       // error/warn/info/debug/trace
         #[inline]
-        pub fn query_log_level(&self) -> Option<&str> {
-            self.global.as_ref()?.log_level.as_deref()
+        pub fn query_log_level(&self) -> Option<log::LevelFilter> {
+            self.global.as_ref()?.log_level.as_deref().map(|level| {
+                match level.trim() {
+                    "error" => log::LevelFilter::Error,
+                    "warn" => log::LevelFilter::Warn,
+                    "info" => log::LevelFilter::Info,
+                    "debug" => log::LevelFilter::Debug,
+                    _ => log::LevelFilter::Trace,
+                }
+            })
         }
         #[inline]
         pub fn query_proxy_listen_addr(&self) -> Option<&str> {
             self.proxy.as_ref()?.listen_addr.as_deref()
         }
-
+    
 }
 
