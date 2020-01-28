@@ -1,4 +1,5 @@
 #![allow(dead_code)] 
+use crate::frontend;
 
 pub type ProxyResult<T> = std::result::Result<T, ProxyError>;
 
@@ -14,6 +15,12 @@ impl From<async_std::io::Error> for ProxyError {
     }
 }
 
+impl From<frontend::errors::FrontendError> for ProxyError {
+    fn from(e : frontend::errors::FrontendError) -> Self {
+        ProxyError::Other(Box::new(e))
+    }
+}
+
 impl std::error::Error for ProxyError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
@@ -22,6 +29,8 @@ impl std::error::Error for ProxyError {
         }
     }
 }
+
+
 impl std::fmt::Display for ProxyError {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {  
             match self {

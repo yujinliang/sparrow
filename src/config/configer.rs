@@ -131,6 +131,12 @@ impl Config {
         pub fn query_proxy_listen_addr(&self) -> Option<&str> {
             self.proxy.as_ref()?.listen_addr.as_deref()
         }
-    
+        #[inline]
+        pub fn check_proxy_user_exists(&self, p_user: String) -> Option<bool> {
+            //Todo: 
+            
+            Some(true)
+        }
+            
 }
 

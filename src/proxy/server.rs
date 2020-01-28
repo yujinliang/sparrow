@@ -2,12 +2,13 @@
 use crate::config::Config;
 use crate::router::Router;
 use async_std::prelude::*;
-use async_std::io;
+//use async_std::io;
 use async_std::task;
 use async_std::net::{TcpListener, TcpStream};
 use super::errors::{ProxyResult};
 use log::info;
 use crate::frontend;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 #[derive(Debug)]
 pub struct ProxyServer <'a>{
@@ -29,8 +30,10 @@ impl<'a> ProxyServer<'a> {
         let mut  incoming = ipv4_listener.incoming();
         while let Some(stream) = incoming.next().await {
             let stream = stream?;
-            task::spawn(async move {
-                    process(stream).await
+            task::spawn(async move {    
+                    let rc = process(stream, generate_id()).await;
+                    info!("process result: {:?}", rc);
+                    rc
              });
          }
         Ok(())
@@ -38,11 +41,17 @@ impl<'a> ProxyServer<'a> {
     }
 } // impl end
 
-async fn process( stream: TcpStream) ->  ProxyResult<()>  {
-    info!("Accepted from: {}", stream.peer_addr()?);
-
-    let (reader, writer) = &mut (&stream, &stream);
-    io::copy(reader, writer).await?;
-
+async fn process( stream: TcpStream, id : u32) ->  ProxyResult<()>  {
+    info!("Accepted from: {}, mysql thread id: {}", stream.peer_addr()?, id);
+    //let (reader, writer) = &mut (&stream, &stream);
+    //io::copy(reader, writer).await?;
+    let mut c2p_conn = frontend::conn::C2PConn::build_c2p_conn(stream, id).await?;
+    c2p_conn.s2c_handshake().await?;
+    c2p_conn.run_loop().await;
     Ok(())
+}
+
+ fn generate_id() -> u32 {
+    static COUNTER: AtomicU32 = AtomicU32::new(1);
+    COUNTER.fetch_add(1, Ordering::Relaxed)
 }

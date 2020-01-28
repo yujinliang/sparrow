@@ -341,3 +341,12 @@ pub enum Command {
     COM_END,
 }
 
+pub fn get_default_capability_flags() -> CapabilityFlags {
+    let proxy_flags = CapabilityFlags::CLIENT_PROTOCOL_41
+        | CapabilityFlags::CLIENT_SECURE_CONNECTION
+        | CapabilityFlags::CLIENT_LONG_PASSWORD
+        | CapabilityFlags::CLIENT_TRANSACTIONS
+        | CapabilityFlags::CLIENT_CONNECT_WITH_DB
+        | CapabilityFlags::CLIENT_LONG_FLAG;
+        return proxy_flags;
+}

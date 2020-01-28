@@ -6,11 +6,11 @@ pub type MysqlResult<T> = std::result::Result<T, MysqlError>;
 pub enum MysqlError {
     MismatchPacketSequence,
     PacketlZeroPayload,
-    Io (std::io::Error),
+    Io (async_std::io::Error),
 }
 
 impl From<async_std::io::Error> for MysqlError {
-    fn from(e : std::io::Error) -> Self {
+    fn from(e : async_std::io::Error) -> Self {
             MysqlError::Io(e)
     }
 }
