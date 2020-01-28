@@ -1,5 +1,5 @@
 #![allow(dead_code)] 
-use crate::router::Router;
+use crate::router;
 use async_std::prelude::*;
 //use async_std::io;
 use async_std::task;
@@ -10,19 +10,20 @@ use crate::frontend;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 #[derive(Debug)]
-pub struct ProxyServer <'a>{
+pub struct ProxyServer{}
 
-    router: &'a Router,
-}
+impl ProxyServer {
 
-impl<'a> ProxyServer<'a> {
-
-    pub fn new( r:&'a Router ) -> ProxyServer <'a> {
-        ProxyServer{ router: r}
+    pub fn new( ) -> ProxyServer {
+        ProxyServer{}
     }
 
    pub fn run(&self) -> ProxyResult<()> {
     task::block_on(async {
+          //init shard router
+        let shard_r = router::load_shard_router()?;
+        info!("shard router module init ok! {:?}", &shard_r);
+
         let listen_addr = crate::GLOBAL_CONFIG.query_proxy_listen_addr().unwrap_or_else(|| "127.0.0.1:9696");
         let ipv4_listener = TcpListener::bind(listen_addr).await?;
         let mut  incoming = ipv4_listener.incoming();

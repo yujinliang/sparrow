@@ -1,5 +1,6 @@
 #![allow(dead_code)] 
 use crate::frontend;
+use crate::router;
 
 pub type ProxyResult<T> = std::result::Result<T, ProxyError>;
 
@@ -17,6 +18,12 @@ impl From<async_std::io::Error> for ProxyError {
 
 impl From<frontend::errors::FrontendError> for ProxyError {
     fn from(e : frontend::errors::FrontendError) -> Self {
+        ProxyError::Other(Box::new(e))
+    }
+}
+
+impl From<router::ShardRouterError> for ProxyError {
+    fn from(e : router::ShardRouterError) -> Self {
         ProxyError::Other(Box::new(e))
     }
 }

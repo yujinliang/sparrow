@@ -7,6 +7,7 @@ mod frontend;
 use log::info;
 
 lazy_static::lazy_static! {
+        //1 init global config
         static ref  GLOBAL_CONFIG: config::Config = {
             let cfg = config::load_config().unwrap_or_else(|_|{ config::empty()});
             cfg
@@ -14,24 +15,18 @@ lazy_static::lazy_static! {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
+
     println!("--Sparrow mysql/mariadb proxy running!--");
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
     println!("------------------------------------------------------");
     //println!("global config: {:?}", *GLOBAL_CONFIG); 
-
     //2 init log module
     setup_logger();
     info!("log module init ok!");
     info!("Sparrow run commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
-
-    //3. init shard router
-    let shard_r = router::load_shard_router().unwrap();
-    info!("shard router module init ok!");
-    //4. run proxy server
+    //3. run proxy server
     info!("start to run proxy server!");
-    let proxy = proxy::ProxyServer::new(&shard_r);
-    proxy.run()?;
+    proxy::ProxyServer::new().run()?;
 
     Ok(())
 }
