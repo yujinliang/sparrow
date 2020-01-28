@@ -121,6 +121,8 @@ impl C2PConn {
     #[allow(unused_assignments)]
     pub async fn  run_loop(&mut self)  {
         info!("run_loop : {:?}", &self);
+        //println!("global config: {:?}", *crate::GLOBAL_CONFIG); 
+
         let mut exit_flag = false;
         loop {
                 match self.pkg.read_packet().await {

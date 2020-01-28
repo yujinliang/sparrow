@@ -6,29 +6,31 @@ mod mysql;
 mod frontend;
 use log::info;
 
+lazy_static::lazy_static! {
+        static ref  GLOBAL_CONFIG: config::Config = {
+            let cfg = config::load_config().unwrap();
+            cfg
+        };
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("--Sparrow mysql/mariadb proxy running!--");
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
     println!("------------------------------------------------------");
+    //println!("global config: {:?}", *GLOBAL_CONFIG); 
 
-    /*Attention: here we use unwrap() directly! , that means all errors in every module  do not allow to propagte to main level !
-       every module log  own errors,  so if  we hit a error in here , then should panic! coz , this is a server ,  need long time to live !  
-       do best to run , no complaint!*/
-    //1. config.
-    let cfg = config::load_config().unwrap();
-    info!("Sparrow run commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
-      
     //2 init log module
-    setup_logger(&cfg);
+    setup_logger(&GLOBAL_CONFIG);
     info!("log module init ok!");
-    
+    info!("Sparrow run commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
+
     //3. init shard router
-    let shard_r = router::load_shard_router(&cfg).unwrap();
+    let shard_r = router::load_shard_router(&GLOBAL_CONFIG).unwrap();
     info!("shard router module init ok!");
     //4. run proxy server
     info!("start to run proxy server!");
-    let proxy = proxy::ProxyServer::new(&cfg, &shard_r);
+    let proxy = proxy::ProxyServer::new(&GLOBAL_CONFIG, &shard_r);
     proxy.run()?;
 
     Ok(())
