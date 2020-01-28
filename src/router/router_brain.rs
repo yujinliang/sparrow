@@ -1,5 +1,4 @@
 #![allow(dead_code)] 
-use crate::config::Config;
 use crate::config::DBNodeConfig;
 use std::result::Result;
 use std::collections::HashMap;
@@ -33,13 +32,13 @@ impl Router {
 
 }
 //Attention: just allow to be called in main start flow, should panic!
-pub   fn load_shard_router( config: & Config) -> Result<Arc<Router> ,ShardRouterError > {
-  build_router(config)
+pub   fn load_shard_router( ) -> Result<Arc<Router> ,ShardRouterError > {
+  build_router()
 }
 //not allow panic, just return Error
-pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
+pub fn build_router( ) -> Result<Arc<Router> , ShardRouterError> {
 
-        if let Some(ref schema_vec) = cfg.db_shard_schema_list.as_ref() {
+        if let Some(ref schema_vec) = crate::GLOBAL_CONFIG.db_shard_schema_list.as_ref() {
             let mut router_table = Box::new(RouterTable{table_entry:HashMap::new()});
             //-------------------------------------------------------------------------------------------------------------------
             for schema in schema_vec.iter() {
@@ -105,7 +104,7 @@ pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
                                                                                                     .and_then(|cluster_id_vec|{
                                                                                                         let mut vec: Vec<DBCluster> = Vec::new();
                                                                                                         for (pos , s) in cluster_id_vec.iter().enumerate() {
-                                                                                                            let ccfg = cfg.get_db_cluster(s).ok_or_else(|| ShardRouterError::NoClusterConfig(s.clone()))?;
+                                                                                                            let ccfg = crate::GLOBAL_CONFIG.get_db_cluster(s).ok_or_else(|| ShardRouterError::NoClusterConfig(s.clone()))?;
                                                                                                             //---
                                                                                                             let table_split_count = schema.each_cluster_table_split_count.as_ref().map_or( 0, | tsc | {
                                                                                                                 tsc[pos]
@@ -117,7 +116,7 @@ pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
                                                                                                                     .ok_or_else(|| { ShardRouterError::NoNodeConfig("slave node list is empty!".to_string())})
                                                                                                                     .and_then(|slave_id_vec|{
                                                                                                                             for n in slave_id_vec.iter() {
-                                                                                                                                cfg.get_db_node(n)
+                                                                                                                                crate::GLOBAL_CONFIG.get_db_node(n)
                                                                                                                                       .ok_or_else(|| ShardRouterError::NoNodeConfig(n.clone()))
                                                                                                                                       .and_then(|node_cfg|{
                                                                                                                                             slave_n_vec.push(DBNode{node_cfg: node_cfg.clone(),});
@@ -131,7 +130,7 @@ pub fn build_router( cfg: & Config) -> Result<Arc<Router> , ShardRouterError> {
                                                                                                                                                     .as_ref()
                                                                                                                                                     .ok_or_else(||{ShardRouterError::NoNodeConfig("master node id is emtpy".to_string())})
                                                                                                                                                     .and_then(|s|{
-                                                                                                                                                        cfg.get_db_node(&s)
+                                                                                                                                                        crate::GLOBAL_CONFIG.get_db_node(&s)
                                                                                                                                                                .ok_or_else(||{
                                                                                                                                                                     ShardRouterError::NoNodeConfig(s.clone())
                                                                                                                                                                })

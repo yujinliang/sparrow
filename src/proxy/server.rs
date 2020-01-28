@@ -1,5 +1,4 @@
 #![allow(dead_code)] 
-use crate::config::Config;
 use crate::router::Router;
 use async_std::prelude::*;
 //use async_std::io;
@@ -13,21 +12,21 @@ use std::sync::atomic::{AtomicU32, Ordering};
 #[derive(Debug)]
 pub struct ProxyServer <'a>{
 
-    cfg : &'a Config,
     router: &'a Router,
 }
 
 impl<'a> ProxyServer<'a> {
 
-    pub fn new( c : &'a Config, r:&'a Router ) -> ProxyServer <'a> {
-        ProxyServer{cfg : c, router: r}
+    pub fn new( r:&'a Router ) -> ProxyServer <'a> {
+        ProxyServer{ router: r}
     }
 
    pub fn run(&self) -> ProxyResult<()> {
     task::block_on(async {
-        let listen_addr = self.cfg.query_proxy_listen_addr().unwrap_or_else(|| "127.0.0.1:9696");
+        let listen_addr = crate::GLOBAL_CONFIG.query_proxy_listen_addr().unwrap_or_else(|| "127.0.0.1:9696");
         let ipv4_listener = TcpListener::bind(listen_addr).await?;
         let mut  incoming = ipv4_listener.incoming();
+       // println!("global config: {:?}", crate::GLOBAL_CONFIG.query_log_path()); 
         while let Some(stream) = incoming.next().await {
             let stream = stream?;
             task::spawn(async move {    

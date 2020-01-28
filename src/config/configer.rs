@@ -93,6 +93,16 @@ pub struct DBShardSchemaConfig {
       pub  integer_range:Option<Vec<String>>,
 }
 
+pub fn empty() -> Config {
+    Config {
+        global: None,
+        proxy: None,
+        web:None,
+        db_node_list:None,
+        db_cluster_list:None,
+        db_shard_schema_list:None,
+    }
+}
 //fn definition start here.
 pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
