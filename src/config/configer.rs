@@ -132,10 +132,13 @@ impl Config {
             self.proxy.as_ref()?.listen_addr.as_deref()
         }
         #[inline]
-        pub fn check_proxy_user_exists(&self, p_user: String) -> Option<bool> {
-            //Todo: 
-            
-            Some(true)
+        pub fn load_proxy_user_list(&self) -> Option<Vec<(String, String)>> {
+               let user_tuple: Vec<(String, String)> =  self.proxy.as_ref()?.proxy_users.as_ref()?.iter().map(| pu |{ 
+                   let user = pu.user.clone().unwrap_or_default();
+                   let pwd = pu.pwd.clone().unwrap_or_default();
+                    (user, pwd)
+               }).collect();
+               Some(user_tuple)
         }
             
 }
