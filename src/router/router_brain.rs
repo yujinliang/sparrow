@@ -2,7 +2,7 @@
 use crate::config::DBNodeConfig;
 use std::result::Result;
 use std::collections::HashMap;
-use std::sync::Arc;
+use async_std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::ops::Range;

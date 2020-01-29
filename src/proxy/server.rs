@@ -4,6 +4,7 @@ use async_std::prelude::*;
 //use async_std::io;
 use async_std::task;
 use async_std::net::{TcpListener, TcpStream};
+use async_std::sync::Arc;
 use super::errors::{ProxyResult};
 use log::info;
 use crate::frontend;
@@ -30,8 +31,9 @@ impl ProxyServer {
        // println!("global config: {:?}", crate::GLOBAL_CONFIG.query_log_path()); 
         while let Some(stream) = incoming.next().await {
             let stream = stream?;
+            let client_router = shard_r.clone();
             task::spawn(async move {    
-                    let rc = process(stream, generate_id()).await;
+                    let rc = process(stream, generate_id(), client_router).await;
                     info!("process result: {:?}", rc);
                     rc
              });
@@ -41,11 +43,9 @@ impl ProxyServer {
     }
 } // impl end
 
-async fn process( stream: TcpStream, id : u32) ->  ProxyResult<()>  {
+async fn process( stream: TcpStream, id : u32, r : Arc<router::Router>) ->  ProxyResult<()>  {
     info!("Accepted from: {}, mysql thread id: {}", stream.peer_addr()?, id);
-    //let (reader, writer) = &mut (&stream, &stream);
-    //io::copy(reader, writer).await?;
-    let mut c2p_conn = frontend::conn::C2PConn::build_c2p_conn(stream, id).await?;
+    let mut c2p_conn = frontend::conn::C2PConn::build_c2p_conn(stream, id, r).await?;
     c2p_conn.s2c_handshake().await?;
     c2p_conn.run_loop().await;
     Ok(())

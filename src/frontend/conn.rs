@@ -4,10 +4,12 @@
 use crate::mysql::{packetio, constants, utils, errors};
 use async_std::net::{TcpStream};
 use async_std::io;
+use async_std::sync;
 use super::errors::{FrontendResult, FrontendError};
 use byteorder::{LittleEndian as LE, WriteBytesExt};
 use log::info;
 use std::io::Cursor;
+use crate::router;
 
 //client to proxy conn abstraction
 #[derive(Debug)]
@@ -21,6 +23,8 @@ pub struct C2PConn {
 //---
     proxy_user: String,
     db:String,
+//--
+    r : sync::Arc<router::Router>,
 }
 
 impl C2PConn {
@@ -75,7 +79,7 @@ impl C2PConn {
         let mut pos: usize = 0;
         //capability
         let mut rdr = Cursor::new(&data[..4]);
-        self.capability = constants::CapabilityFlags::from_bits_truncate( byteorder::ReadBytesExt::read_u32::<LE>(& mut rdr).unwrap_or(0));
+        self.capability &= constants::CapabilityFlags::from_bits_truncate( byteorder::ReadBytesExt::read_u32::<LE>(& mut rdr).unwrap_or(0));
         pos += 4;
         //skip max packet size
         pos += 4;
@@ -152,7 +156,7 @@ impl C2PConn {
         info!("dispatch_mysql_cmd data: {:?}", data);
         Ok(())
     }
-    pub async fn  build_c2p_conn(tcp: TcpStream, id: u32) -> FrontendResult<C2PConn> {
+    pub async fn  build_c2p_conn(tcp: TcpStream, id: u32,  r : sync::Arc<router::Router>) -> FrontendResult<C2PConn> {
             let pkg = packetio::PacketIO::new(tcp);
             let conn_id: u32 = id;
             let capability = constants::get_default_capability_flags();
@@ -170,6 +174,7 @@ impl C2PConn {
                 status,
                 proxy_user,
                 db,
+                r,
             })
     }
 }
