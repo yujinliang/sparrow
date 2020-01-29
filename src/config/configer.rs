@@ -15,7 +15,18 @@ pub struct Config {
         db_cluster_list:Option<Vec<DBClusterConfig>>,
      pub    db_shard_schema_list:Option<Vec<DBShardSchemaConfig>>,
 }
+#[derive(Debug, Deserialize)]
+pub struct ConfigShortcut {
+    pub  proxy_user_list: Option<Vec<(String, String)>>,
+}
+impl ConfigShortcut {
+    pub fn check_proxy_user_exists(&self, user: &String) -> Option<(String, String)> {
+            self.proxy_user_list.as_ref()?.iter().find(|(u, _p)| {
+                u == user
+            }).cloned()
+    }
 
+}
 impl Config {
     pub fn get_db_cluster(&self, id : &str) -> Option<&DBClusterConfig> {
 
@@ -144,8 +155,8 @@ impl Config {
         #[inline]
         pub fn load_proxy_user_list(&self) -> Option<Vec<(String, String)>> {
                let user_tuple: Vec<(String, String)> =  self.proxy.as_ref()?.proxy_users.as_ref()?.iter().map(| pu |{ 
-                   let user = pu.user.clone().unwrap_or_default();
-                   let pwd = pu.pwd.clone().unwrap_or_default();
+                   let user = pu.user.clone().unwrap_or_default().trim().to_string();
+                   let pwd = pu.pwd.clone().unwrap_or_default().trim().to_string();
                     (user, pwd)
                }).collect();
                Some(user_tuple)

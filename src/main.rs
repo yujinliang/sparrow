@@ -12,6 +12,14 @@ lazy_static::lazy_static! {
             let cfg = config::load_config().unwrap_or_else(|_|{ config::empty()});
             cfg
         };
+
+        //global config shortcut
+        static ref SHOTCUT_GLOBAL_CONFIG: config::ConfigShortcut = {
+            let shortcut = config::ConfigShortcut{
+                proxy_user_list: GLOBAL_CONFIG.load_proxy_user_list(),
+            };
+            shortcut
+        };
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

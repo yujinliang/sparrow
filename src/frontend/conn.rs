@@ -98,9 +98,20 @@ impl C2PConn {
 	pos +=1;
     let auth = data[pos .. (pos+auth_len)].to_vec();
     info!("client auth user: {}, auth:{:?}", &self.proxy_user, &auth);
-    //Todo: check proxy user exists?
-    //Todo: check user password?
+    //check proxy user exists?
+    let user_pair = crate::SHOTCUT_GLOBAL_CONFIG.check_proxy_user_exists(&self.proxy_user);
+    if user_pair.is_none() {
+        info!("proxy user do not exist: {}, auth:{:?}", &self.proxy_user, &auth);
+        return Err(FrontendError::ProxyAuthDenied);
+    }
+    //check user password?
+    let scramble = utils::scramble_password(&self.salt, user_pair.unwrap_or_default().1).unwrap_or_default();
+	if !(scramble == auth) {
+        info!("proxy user pwd check failed: {}, auth:{:?}", &self.proxy_user, &auth);
+		return Err(FrontendError::ProxyAuthDenied);
+    }
     pos += auth_len;
+    
     //init with db
     let mut init_with_db = String::new();
     if self.capability.contains(constants::CapabilityFlags::CLIENT_CONNECT_WITH_DB ) {
