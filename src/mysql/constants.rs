@@ -16,6 +16,16 @@ pub static MIN_PROTOCOL_VERSION : u8 = 10;
 pub static UTF8_GENERAL_CI: u8 = 33;
 pub static UTF8MB4_GENERAL_CI: u8 = 45;
 
+pub static OK_PACKET_HEADER_MARK:u8 = 0x00;
+pub static ERR_PACKET_HEADER_MARK:u8 = 0xFF;
+//Attention: Confused with Protocol::LengthEncodedInteger ; 
+//so first check 0xFE, second check the packet size < 9 byte count;
+//both of two is true , then this is a EOF packet.
+//https://dev.mysql.com/doc/internals/en/integer.html#length-encoded-integer
+//http://hutaow.com/blog/2013/11/06/mysql-protocol-analysis/#41
+//https://dev.mysql.com/doc/internals/en/packet-EOF_Packet.html
+pub static EOF_PACKET_HEADER_MARK:u8 = 0xFE;
+
 bitflags! {
     /// MySql server status flags
     pub struct StatusFlags: u16 {

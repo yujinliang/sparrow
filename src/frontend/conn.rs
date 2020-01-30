@@ -1,7 +1,7 @@
 #![allow(dead_code)] 
 #![allow(unused_assignments)]
 #![allow(unused_variables)]
-use crate::mysql::{packetio, constants, utils, errors};
+use crate::mysql::{packetio, constants, utils, errors, packet};
 use async_std::net::{TcpStream};
 use async_std::io;
 use async_std::sync;
@@ -127,7 +127,10 @@ impl C2PConn {
     info!("init_with_db: {:?}, final pos: {}", &self, pos);
     Ok(())
     }
-
+    //write ok packet to clent.
+    pub async fn write_ok(&mut self, r: Option<packet::OkPacket> ) -> FrontendResult<()> {
+        unimplemented!();
+    }
     //mysql server to client handshake 
     pub async fn s2c_handshake(& mut self) ->  FrontendResult<()> {
         info!("handshake : {:?}", &self);

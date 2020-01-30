@@ -64,21 +64,21 @@ pub fn write_length_encoded_int( x: u64) -> Vec<u8> {
 }
 // Reads MySql's length-encoded integer.
 #[allow(unused_assignments)]
-fn read_length_encoded_int(data: &[u8]) -> u64 {
+pub fn read_length_encoded_int(data: &[u8]) -> (usize ,u64) {
         if data.len() < 1 {
-                return 0;
+                return (0, 0);
         }
         let mut byte_c = 0;
         match data[0] {
-            x if x < 0xfc => return x.into(),
+            x if x < 0xfc => return (1, x.into()),
             0xfc if data.len() >= 3 => byte_c = 2,
             0xfd if data.len() >=4 => byte_c = 3,
             0xfe if data.len() >=9 => byte_c = 8,
             _ => byte_c = 0,
         };
         if byte_c > 0 {
-                return LE::read_uint(&data[1..], byte_c);
+                return (byte_c+1,LE::read_uint(&data[1..], byte_c));
         } else {
-                return 0;
+                return (0,0);
         }
 }

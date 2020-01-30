@@ -6,6 +6,8 @@ pub type MysqlResult<T> = std::result::Result<T, MysqlError>;
 pub enum MysqlError {
     MismatchPacketSequence,
     PacketlZeroPayload,
+    OkPacketWrongSize,
+    OkPacketILL,
     Io (async_std::io::Error),
 }
 
@@ -20,6 +22,8 @@ impl std::error::Error for MysqlError {
         match self {
             MysqlError::MismatchPacketSequence =>  None,
             MysqlError::PacketlZeroPayload => None,
+            MysqlError::OkPacketILL => None,
+            MysqlError::OkPacketWrongSize => None,
             MysqlError::Io(e) => e.source(),
         }
     }
@@ -30,6 +34,8 @@ impl std::fmt::Display for MysqlError {
         match self {
             MysqlError::MismatchPacketSequence => write!(f, "MysqlError::MismatchPacketSequence!"),
             MysqlError::PacketlZeroPayload => write!(f, "MysqlError::PacketlZeroPayload!"),
+            MysqlError::OkPacketWrongSize => write!(f, "MysqlError::OkPacketWrongSize!"),
+            MysqlError::OkPacketILL => write!(f, "MysqlError::OkPacketILL!"),
             MysqlError::Io(e) => e.fmt(f),  
         }
     }
