@@ -128,15 +128,23 @@ impl C2PConn {
     }
     //write ok packet to clent.
     pub async fn write_ok(&mut self, r: Option<packet::OkPacket> ) -> FrontendResult<()> {
-        unimplemented!();
+       let ok_p = if r.is_none() {
+            packet::OkPacket::empty(self.status)
+       } else {
+            r.unwrap_or_else(||{
+                packet::OkPacket::empty(self.status)
+            })
+       };
+       let mut data = ok_p.to_bits();
+        self.pkg.write_packet(&mut data).await.map_err(|e| { FrontendError::ErrMysqlWrite(e)})
     }
     //mysql server to client handshake 
     pub async fn s2c_handshake(& mut self) ->  FrontendResult<()> {
         info!("handshake : {:?}", &self);
         self.write_initial_handshake().await?;
         self.read_client_handshake().await?;
-        //Todo: writeOk
-        
+        self.write_ok(None).await?;
+        self.pkg.reset_seq(); 
         Ok(())
     }
     #[allow(unused_assignments)]

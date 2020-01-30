@@ -14,13 +14,19 @@ pub struct OkPacket {
 
 impl OkPacket {
 
-    pub fn empty() -> OkPacket{
+    pub fn empty(status:constants::StatusFlags) -> OkPacket {
         OkPacket{
-            status:constants::StatusFlags::SERVER_STATUS_AUTOCOMMIT,
+            status,
             last_insert_id:0,
             affected_rows:0,
             warnings:0,
         }
+    }
+    pub fn new(affected_rows:u64,
+        last_insert_id:u64,
+        status: constants::StatusFlags,
+        warnings:u16, ) ->OkPacket {
+       OkPacket{affected_rows, last_insert_id, status, warnings}
     }
     //http://hutaow.com/blog/2013/11/06/mysql-protocol-analysis/#41
     //https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
