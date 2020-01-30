@@ -32,8 +32,7 @@ impl C2PConn {
     //https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
     //http://hutaow.com/blog/2013/11/06/mysql-protocol-analysis/#41
     async fn write_initial_handshake(&mut self) ->  FrontendResult<()>{
-         //reserved 4 bytes for header.
-         let mut data = vec![0u8; 4];
+         let mut data: Vec<u8> = Vec::new();
          //min version 10
         data.push(constants::MIN_PROTOCOL_VERSION);
         	//server version[00]

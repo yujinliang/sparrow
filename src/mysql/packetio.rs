@@ -63,10 +63,12 @@ impl  PacketIO {
             
     }
 
-//attention: included header in data
+//attention: do not included header in data
     pub async fn write_packet(&mut self, data: &mut [u8]) -> MysqlResult<()> {
-        let mut data_len = data.len() - 4;
-        let mut  bufp = data;
+        let mut data_len = data.len();
+        let mut header = vec![0u8;4];
+        header.extend_from_slice(data);
+        let mut  bufp = header.as_mut_slice();
         while data_len >= MAX_PAYLOAD_LEN {
             bufp[0] = 0xff;
             bufp[1] = 0xff;
