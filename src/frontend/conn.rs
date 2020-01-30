@@ -1,6 +1,6 @@
 #![allow(dead_code)] 
-#[allow(unused_assignments)]
-#[allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_variables)]
 use crate::mysql::{packetio, constants, utils, errors};
 use async_std::net::{TcpStream};
 use async_std::io;
@@ -129,8 +129,12 @@ impl C2PConn {
     }
 
     //mysql server to client handshake 
-    pub async fn s2c_handshake(&self) ->  FrontendResult<()> {
+    pub async fn s2c_handshake(& mut self) ->  FrontendResult<()> {
         info!("handshake : {:?}", &self);
+        self.write_initial_handshake().await?;
+        self.read_client_handshake().await?;
+        //Todo: writeOk
+        
         Ok(())
     }
     #[allow(unused_assignments)]
