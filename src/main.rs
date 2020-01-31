@@ -9,16 +9,14 @@ use log::info;
 lazy_static::lazy_static! {
         //1 init global config
         static ref  GLOBAL_CONFIG: config::Config = {
-            let cfg = config::load_config().unwrap_or_else(|_|{ config::empty()});
-            cfg
+            config::load_config().unwrap_or_else(|_|{ config::empty()})
         };
 
         //global config shortcut
         static ref SHOTCUT_GLOBAL_CONFIG: config::ConfigShortcut = {
-            let shortcut = config::ConfigShortcut{
+            config::ConfigShortcut{
                 proxy_user_list: GLOBAL_CONFIG.load_proxy_user_list(),
-            };
-            shortcut
+            }
         };
 }
 

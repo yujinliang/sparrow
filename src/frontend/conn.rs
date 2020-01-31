@@ -1,7 +1,7 @@
 #![allow(dead_code)] 
 #![allow(unused_assignments)]
 #![allow(unused_variables)]
-use crate::mysql::{packetio, constants, utils, errors, packet};
+use crate::mysql::{packetio, constants, utils, errors, packet, constants::command};
 use async_std::net::{TcpStream};
 use async_std::io;
 use async_std::sync;
@@ -25,6 +25,8 @@ pub struct C2PConn {
     db:String,
 //--
     r : sync::Arc<router::Router>,
+//--
+    quit_flag:bool,
 }
 
 impl C2PConn {
@@ -66,7 +68,7 @@ impl C2PConn {
         data.extend_from_slice(&self.salt[8..]);
         data.push(0u8);
         //server send first auth packet to client by tcp stream
-        self.pkg.write_packet(&mut data).await.map_err(|e| { FrontendError::ErrMysqlWrite(e)})
+        self.pkg.write_packet(&mut data).await.map_err(|e| { FrontendError::ErrMysql(e)})
     }
    // http://hutaow.com/blog/2013/11/06/mysql-protocol-analysis/#41
    //https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::HandshakeResponse
@@ -79,6 +81,10 @@ impl C2PConn {
         //capability
         let mut rdr = Cursor::new(&data[..4]);
         self.capability &= constants::CapabilityFlags::from_bits_truncate( byteorder::ReadBytesExt::read_u32::<LE>(& mut rdr).unwrap_or(0));
+        if !self.capability.contains(constants::CapabilityFlags::CLIENT_PROTOCOL_41) {
+            info!("Too older than CapabilityFlags::CLIENT_PROTOCOL_41 : {:?}", &self);
+            return Err(FrontendError::ProxyAuthOldinClientProtocol41);
+        }
         pos += 4;
         //skip max packet size
         pos += 4;
@@ -88,9 +94,10 @@ impl C2PConn {
        	//skip reserved 23[00]
 	    pos += 23;
     	//user name
-       self.proxy_user = data[pos..].iter().position(|&x| { x == 0}).and_then(|offset| {
-           Some(String::from_utf8_lossy( &data[pos.. (pos+offset)]))
-       }).unwrap_or_default().to_string();
+       self.proxy_user = data[pos..].iter()
+                                            .position(|&x| { x == 0})
+                                            .map(|offset| String::from_utf8_lossy( &data[pos.. (pos+offset)]))
+                                            .unwrap_or_default().to_string();
        pos += self.proxy_user.len() + 1;
     //auth length and auth
 	let auth_len = data[pos] as usize;
@@ -105,7 +112,7 @@ impl C2PConn {
     }
     //check user password?
     let scramble = utils::scramble_password(&self.salt, user_pair.unwrap_or_default().1).unwrap_or_default();
-	if !(scramble == auth) {
+	if scramble != auth {
         info!("proxy user pwd check failed: {}, auth:{:?}", &self.proxy_user, &auth);
 		return Err(FrontendError::ProxyAuthDenied);
     }
@@ -115,10 +122,11 @@ impl C2PConn {
     let mut init_with_db = String::new();
     if self.capability.contains(constants::CapabilityFlags::CLIENT_CONNECT_WITH_DB ) {
             let may_be_db = &data[pos..];
-            if may_be_db.len() > 0 {
-                init_with_db = data[pos..].iter().position(|&x| { x == 0}).and_then(|offset| {
-                    Some(String::from_utf8_lossy( &data[pos.. (pos+offset)]))
-                }).unwrap_or_default().to_string();
+            if !may_be_db.is_empty() {
+                init_with_db = data[pos..]
+                                                .iter().position(|&x| { x == 0})
+                                                .map(|offset| String::from_utf8_lossy( &data[pos.. (pos+offset)]))
+                                                .unwrap_or_default().to_string();
                 pos += init_with_db.len() + 1;
             }
     }
@@ -136,7 +144,10 @@ impl C2PConn {
             })
        };
        let mut data = ok_p.to_bits();
-        self.pkg.write_packet(&mut data).await.map_err(|e| { FrontendError::ErrMysqlWrite(e)})
+        self.pkg.write_packet(&mut data).await.map_err(|e| { FrontendError::ErrMysql(e)})
+    }
+    pub async fn write_err(&mut self, r: packet::ErrPacket ) -> FrontendResult<()> {
+        self.pkg.write_packet(r.to_bits().as_mut_slice()).await.map_err(|e| { FrontendError::ErrMysql(e)})
     }
     //mysql server to client handshake 
     pub async fn s2c_handshake(& mut self) ->  FrontendResult<()> {
@@ -151,7 +162,6 @@ impl C2PConn {
     pub async fn  run_loop(&mut self)  {
         info!("run_loop : {:?}", &self);
         //println!("global config: {:?}", *crate::GLOBAL_CONFIG); 
-
         let mut exit_flag = false;
         loop {
                 match self.pkg.read_packet().await {
@@ -165,21 +175,75 @@ impl C2PConn {
                                         errors::MysqlError::Io(o) if o.kind() == io::ErrorKind::BrokenPipe  => exit_flag = true,
                                         _ => continue,
                                   } 
-                                  if exit_flag { return; }
+                                  if exit_flag {
+                                      let rc = self.quit();
+                                      info!("quit mysql connection: {:?}", rc);
+                                       return;
+                                    }
                             }
                             Ok(ref mut data) => {
-                                    info!("mysql client packet data: {:?}", data);
-                                    if let Err(e) = self.dispatch_mysql_cmd(data).await {
-                                            info!("dispatch_mysql_cmd err: {:?}",e);
-                                            return;
+                                    info!("before dispatch_mysql_cmd data: {:?}", data);
+                                    let rc = self.dispatch_mysql_cmd(data).await; 
+                                    info!("dispatch_mysql_cmd  result: {:?}",rc);
+                                   if let Err(e) = rc {
+                                        //c.writeError(err)
+                                    if let FrontendError::Io(o) = e {
+                                        let decison = match o.kind() {
+                                            io::ErrorKind::TimedOut  =>  true,
+                                             io::ErrorKind::ConnectionReset  =>  true,
+                                             io::ErrorKind::ConnectionAborted  =>  true,
+                                            io::ErrorKind::ConnectionRefused  => true,
+                                            io::ErrorKind::NotConnected  => true,
+                                            io::ErrorKind::BrokenPipe  => true,
+                                            _ => false,
+                                        };
+                                        if decison {
+                                            let rc = self.quit();
+                                            info!("quit mysql connection: {:?}", rc);
+                                        }
+                                    }
+                                   }
+                                    if self.quit_flag {
+                                        return;
                                     }
                             }
                 }
-        }
+                self.pkg.reset_seq();
+        } //end of loop
+    }
+    pub  fn quit(&mut self) -> FrontendResult<()> {
+        self.quit_flag = true;
+        self.pkg.quit().map_err(|e| {
+            FrontendError::ErrMysql(e)
+        })
     }
     pub async fn dispatch_mysql_cmd(&mut self, data: &mut [u8]) -> FrontendResult<()> {
         info!("dispatch_mysql_cmd data: {:?}", data);
-        Ok(())
+	//data = data[1:]
+	match data[0] {
+	    command::COM_QUIT => {
+               // c.handleRollback()
+                self.quit()?;
+                return Ok(());
+        },
+	    command::COM_QUERY => {
+            //return c.handleQuery(hack.String(data));
+        },
+        command::COM_PING => {
+            //return c.writeOK(nil);
+        },	
+        command::COM_INIT_DB => {
+            //return c.handleUseDB(hack.String(data))
+        },
+        command::COM_FIELD_LIST => {
+
+        },
+		_ => {
+                info!("command {:?}not supported now", data[0]);
+                return Err(FrontendError::ErrMysql(errors::MysqlError::ErUnknownCmd));
+        }
+	}
+    Ok(())
     }
     pub async fn  build_c2p_conn(tcp: TcpStream, id: u32,  r : sync::Arc<router::Router>) -> FrontendResult<C2PConn> {
             let pkg = packetio::PacketIO::new(tcp);
@@ -200,6 +264,7 @@ impl C2PConn {
                 proxy_user,
                 db,
                 r,
+                quit_flag:false,
             })
     }
 }

@@ -43,7 +43,7 @@ pub fn  scramble_password(scramble: &[u8], password:String) -> Option<Vec<u8>> {
        let final_scramel : Vec<u8> =  conbined_scramble.iter().enumerate() .map(|(pos, e)|{
                 e ^ stage1[pos]
         }).collect();
-	return Some(final_scramel)
+	Some(final_scramel)
 }
 // Writes MySql's length-encoded integer.
 pub fn write_length_encoded_int( x: u64) -> Vec<u8> {
@@ -65,7 +65,7 @@ pub fn write_length_encoded_int( x: u64) -> Vec<u8> {
 // Reads MySql's length-encoded integer.
 #[allow(unused_assignments)]
 pub fn read_length_encoded_int(data: &[u8]) -> (usize ,u64) {
-        if data.len() < 1 {
+        if data.is_empty() {
                 return (0, 0);
         }
         let mut byte_c = 0;
@@ -77,8 +77,8 @@ pub fn read_length_encoded_int(data: &[u8]) -> (usize ,u64) {
             _ => byte_c = 0,
         };
         if byte_c > 0 {
-                return (byte_c+1,LE::read_uint(&data[1..], byte_c));
+                (byte_c+1,LE::read_uint(&data[1..], byte_c))
         } else {
-                return (0,0);
+                (0,0)
         }
 }

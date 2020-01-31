@@ -5,10 +5,11 @@ use async_std::prelude::*;
 use async_std::task;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::sync::Arc;
-use super::errors::{ProxyResult};
+use super::errors::{ProxyResult, ProxyError};
 use log::info;
 use crate::frontend;
 use std::sync::atomic::{AtomicU32, Ordering};
+use crate::mysql::{packet, errcode};
 
 #[derive(Debug)]
 pub struct ProxyServer{}
@@ -46,7 +47,12 @@ impl ProxyServer {
 async fn process( stream: TcpStream, id : u32, r : Arc<router::Router>) ->  ProxyResult<()>  {
     info!("Accepted from: {}, mysql thread id: {}", stream.peer_addr()?, id);
     let mut c2p_conn = frontend::conn::C2PConn::build_c2p_conn(stream, id, r).await?;
-    c2p_conn.s2c_handshake().await?;
+    if let Err(e) = c2p_conn.s2c_handshake().await {
+        let err_p = packet::ErrPacket::new(errcode::ER_HANDSHAKE_ERROR, format!("{:?}", e));
+       return  c2p_conn.write_err(err_p).await.map_err(|e|{
+           ProxyError::Other(Box::new(e))
+       });
+    }
     c2p_conn.run_loop().await;
     Ok(())
 }

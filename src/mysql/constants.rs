@@ -7,10 +7,9 @@
 // modified, or distributed except according to those terms.
 #![allow(dead_code)] 
 use bitflags::*;
-
 pub static MAX_PAYLOAD_LEN: usize = 16_777_215;
 pub static DEFAULT_MAX_ALLOWED_PACKET: usize = 4 * 1024 * 1024;
-pub static SERVER_VERSION : &'static str = "1.0.0-sparrow";
+pub static SERVER_VERSION : &str = "1.0.0-sparrow";
 pub static MIN_PROTOCOL_VERSION : u8 = 10;
 
 pub static UTF8_GENERAL_CI: u8 = 33;
@@ -312,51 +311,47 @@ bitflags! {
 }
 
 /// MySql server commands
-#[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
-#[repr(u8)]
-pub enum Command {
-    COM_SLEEP = 0,
-    COM_QUIT,
-    COM_INIT_DB,
-    COM_QUERY,
-    COM_FIELD_LIST,
-    COM_CREATE_DB,
-    COM_DROP_DB,
-    COM_REFRESH,
-    COM_DEPRECATED_1,
-    COM_STATISTICS,
-    COM_PROCESS_INFO,
-    COM_CONNECT,
-    COM_PROCESS_KILL,
-    COM_DEBUG,
-    COM_PING,
-    COM_TIME,
-    COM_DELAYED_INSERT,
-    COM_CHANGE_USER,
-    COM_BINLOG_DUMP,
-    COM_TABLE_DUMP,
-    COM_CONNECT_OUT,
-    COM_REGISTER_SLAVE,
-    COM_STMT_PREPARE,
-    COM_STMT_EXECUTE,
-    COM_STMT_SEND_LONG_DATA,
-    COM_STMT_CLOSE,
-    COM_STMT_RESET,
-    COM_SET_OPTION,
-    COM_STMT_FETCH,
-    COM_DAEMON,
-    COM_BINLOG_DUMP_GTID,
-    COM_RESET_CONNECTION,
-    COM_END,
+pub mod command {
+    pub const COM_SLEEP:u8 = 0;
+    pub const COM_QUIT:u8 =1;
+    pub const COM_INIT_DB:u8 = 2;
+    pub const COM_QUERY:u8 =3;
+    pub const COM_FIELD_LIST:u8 = 4;
+    pub const COM_CREATE_DB:u8 = 5;
+    pub const COM_DROP_DB:u8 = 6;
+    pub const COM_REFRESH:u8 = 7;
+    pub const COM_DEPRECATED_1:u8 = 8;
+    pub const COM_STATISTICS:u8 = 9;
+    pub const COM_PROCESS_INFO:u8 = 10;
+    pub const COM_CONNECT:u8 = 11;
+    pub const COM_PROCESS_KILL:u8 = 12;
+    pub const COM_DEBUG:u8 = 13;
+    pub const COM_PING:u8 = 14;
+    pub const COM_TIME:u8 = 15;
+    pub const COM_DELAYED_INSERT:u8 = 16;
+    pub const COM_CHANGE_USER:u8 = 17;
+    pub const COM_BINLOG_DUMP:u8 = 18;
+    pub const COM_TABLE_DUMP:u8 = 19;
+    pub const COM_CONNECT_OUT:u8 = 20;
+    pub const COM_REGISTER_SLAVE:u8 = 21;
+    pub const COM_STMT_PREPARE:u8 = 22;
+    pub const COM_STMT_EXECUTE:u8 = 23;
+    pub const COM_STMT_SEND_LONG_DATA:u8 = 24;
+    pub const COM_STMT_CLOSE:u8 = 25;
+    pub const COM_STMT_RESET:u8 = 26;
+    pub const COM_SET_OPTION:u8 = 27;
+    pub const COM_STMT_FETCH:u8 = 28;
+    pub const COM_DAEMON:u8 = 29;
+    pub const COM_BINLOG_DUMP_GTID:u8 = 30;
+    pub const COM_RESET_CONNECTION:u8 = 31;
+    pub const COM_END:u8 = 32;
 }
 
 pub fn get_default_capability_flags() -> CapabilityFlags {
-    let proxy_flags = CapabilityFlags::CLIENT_PROTOCOL_41
+    CapabilityFlags::CLIENT_PROTOCOL_41
         | CapabilityFlags::CLIENT_SECURE_CONNECTION
         | CapabilityFlags::CLIENT_LONG_PASSWORD
         | CapabilityFlags::CLIENT_TRANSACTIONS
         | CapabilityFlags::CLIENT_CONNECT_WITH_DB
-        | CapabilityFlags::CLIENT_LONG_FLAG;
-        return proxy_flags;
+        | CapabilityFlags::CLIENT_LONG_FLAG
 }

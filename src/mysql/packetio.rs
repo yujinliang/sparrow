@@ -4,7 +4,7 @@ use byteorder::{LittleEndian as LE, WriteBytesExt};
 use super::errors::{MysqlError, MysqlResult};
 use super::constants::{MAX_PAYLOAD_LEN};
 use async_std::prelude::*;
-use async_std::net::{TcpStream};
+use async_std::net::{TcpStream, Shutdown};
 
 #[derive(Debug)]
 pub struct  PacketIO {
@@ -19,6 +19,12 @@ impl  PacketIO {
                     sequence:0u8,
                     stream:s,
                 }
+    }
+
+    pub fn quit(&self) -> MysqlResult<()>{
+            self.stream.shutdown(Shutdown::Both).map_err(|e| {
+                MysqlError::Io(e)
+            })
     }
     
     pub fn reset_seq(&mut self) {
