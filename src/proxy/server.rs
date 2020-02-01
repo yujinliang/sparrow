@@ -46,14 +46,14 @@ impl ProxyServer {
 
 async fn process( stream: TcpStream, id : u32, r : Arc<router::Router>) ->  ProxyResult<()>  {
     info!("Accepted from: {}, mysql thread id: {}", stream.peer_addr()?, id);
-    let mut c2p_conn = frontend::conn::C2PConn::build_c2p_conn(stream, id, r).await?;
-    if let Err(e) = c2p_conn.s2c_handshake().await {
+    let mut c2p = frontend::conn::C2PConn::build_c2p_conn(stream, id, r).await?;
+    if let Err(e) = c2p.s2c_handshake().await {
         let err_p = packet::ErrPacket::new(errcode::ER_HANDSHAKE_ERROR, format!("{:?}", e));
-       return  c2p_conn.write_err(err_p).await.map_err(|e|{
+       return  c2p.write_err(err_p).await.map_err(|e|{
            ProxyError::Other(Box::new(e))
        });
     }
-    c2p_conn.run_loop().await;
+    c2p.run_loop().await;
     Ok(())
 }
 
