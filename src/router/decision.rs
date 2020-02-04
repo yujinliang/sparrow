@@ -4,6 +4,8 @@ use std::result::Result;
 use async_std::sync::Arc;
 use super::error::RouterError;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 use std::ops::Range;
 
 #[derive(Debug)]
@@ -62,7 +64,55 @@ impl TableSectionEntry {
     }
     //the result: (cluster_id, table_name)
     pub fn lookup_one_path(&self,  shard_val:&str) -> Result<(&str, String), RouterError> {
-            unimplemented!();
+        if shard_val.trim().is_empty() {
+            return Err(RouterError::LookupErrShardValueEmpty);
+        }
+        match self.shard_type {
+            ShardType::Hash => {
+                let cluster_sum  = self.cluster_pairs.len() as u64 ;
+                if cluster_sum > 0 {
+                    let mut s = DefaultHasher::new();
+                    shard_val.hash(&mut s);
+                    let shard_hash = s.finish(); //u64
+                    let cluster_idx = (shard_hash % cluster_sum) as usize;
+                   //table split count
+                    let table_idx = shard_hash % self.cluster_pairs[cluster_idx].1 as u64;
+                    let table_final_name = format!("{}_{}", self.table, table_idx);
+                     return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                } 
+                Err(RouterError::LookupErrClusterPairsEmpty)
+            },
+            ShardType::Integer => {
+                let cluster_sum  = self.cluster_pairs.len() as u128 ;
+                if cluster_sum > 0 {
+                    let shard_u128 = u128::from_str_radix( shard_val, 10).map_err(|e| {
+                        RouterError::LookupErrShardValueILL(format!("illegal integer: {:?}", e))
+                    })?;
+                    let cluster_idx = (shard_u128 % cluster_sum) as usize;
+                    let table_idx = shard_u128 % self.cluster_pairs[cluster_idx].1 as u128;
+                    let table_final_name = format!("{}_{}", self.table, table_idx);
+                    return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                }
+                Err(RouterError::LookupErrClusterPairsEmpty)
+            },
+            ShardType::IntegerRange => {  
+                let cluster_sum  = self.cluster_pairs.len() as u128 ;
+                if cluster_sum > 0 {
+                        let shard_u128 = u128::from_str_radix( shard_val, 10).map_err(|e| {
+                        RouterError::LookupErrShardValueILL(format!("illegal integer: {:?}", e))
+                    })?;
+                    for (pos, r) in self.integer_range.iter().enumerate() {
+                        if r.contains(&shard_u128) {
+                            let table_idx = shard_u128 % self.cluster_pairs[pos].1 as u128;
+                            let table_final_name = format!("{}_{}", self.table, table_idx);
+                            return Ok((&self.cluster_pairs[pos].0, table_final_name));   
+                        }
+                    }
+                    return Err(RouterError::LookupErrNotInIntegerRange(format!("{:?} not in integer range", shard_val)));
+                }
+                Err(RouterError::LookupErrClusterPairsEmpty)
+            },       
+        }
     } 
 }
 //not allow panic, just return Error
@@ -85,7 +135,7 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                 let db_name
                                                  = db.db
                                                 .as_ref()
-                                                .ok_or(RouterError::ShardSchemaParameterILL("db name empty in DBSectionConfig".to_string()))
+                                                .ok_or_else(|| RouterError::ShardSchemaParameterILL("db name empty in DBSectionConfig".to_string()))
                                                 .and_then(|s| {
                                                     if s.trim().is_empty() {
                                                         return Err(RouterError::ShardSchemaParameterILL("db name empty in DBSectionConfig".to_string()));
@@ -96,9 +146,9 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                 let cluster_ids 
                                                 = db.cluster_ids
                                                     .as_ref()
-                                                    .ok_or(RouterError::ShardSchemaParameterILL("no cluster id list  in DBSectionConfig".to_string()))
+                                                    .ok_or_else(|| RouterError::ShardSchemaParameterILL("no cluster id list  in DBSectionConfig".to_string()))
                                                     .and_then(|cluster_ids| {
-                                                        if cluster_ids.len() == 0 {
+                                                        if cluster_ids.is_empty() {
                                                             return Err(RouterError::ShardSchemaParameterILL("zero len cluster id list in DBSectionConfig".to_string()));
                                                         }
                                                         Ok(cluster_ids)
@@ -107,9 +157,9 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                     let table_map
                                                     = db.table
                                                         .as_ref()
-                                                        .ok_or(RouterError::ShardSchemaParameterILL("no table  in DBSectionConfig".to_string()))
+                                                        .ok_or_else(|| RouterError::ShardSchemaParameterILL("no table  in DBSectionConfig".to_string()))
                                                         .and_then(|table_list| {
-                                                            if table_list.len() == 0 {
+                                                            if table_list.is_empty() {
                                                                 return Err(RouterError::ShardSchemaParameterILL("zero len table list  in TableSectionConfig".to_string()));
                                                             }
                                                             let mut table_map:HashMap<&'a str,TableSectionEntry> = HashMap::new();
@@ -135,7 +185,7 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                                                                   = table_sec
                                                                                                   .shard_type
                                                                                                   .as_ref()
-                                                                                                  .ok_or(RouterError::ShardSchemaParameterILL("no shard_type  in DBSectionConfig".to_string()))
+                                                                                                  .ok_or_else(|| RouterError::ShardSchemaParameterILL("no shard_type  in DBSectionConfig".to_string()))
                                                                                                   .and_then(|s_type| {
                                                                                                         match s_type.trim() {
                                                                                                             "hash" => Ok(ShardType::Hash),
@@ -150,9 +200,9 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                                         table_sec
                                                                         .integer_range
                                                                         .as_ref()
-                                                                        .ok_or(RouterError::ShardSchemaParameterILL("no integer_range  in TableSectionConfig".to_string()))
+                                                                        .ok_or_else(|| RouterError::ShardSchemaParameterILL("no integer_range  in TableSectionConfig".to_string()))
                                                                         .and_then(|i_range| {
-                                                                                if i_range.len() == 0 {
+                                                                                if i_range.is_empty() {
                                                                                     return Err(RouterError::ShardSchemaParameterILL("no integer_range  in TableSectionConfig".to_string()));
                                                                                 }
                                                                                 let mut v : Vec<Range<u128>> = Vec::new();                         
@@ -190,7 +240,7 @@ pub fn build_router<'a>( ) -> Result<Arc<Router<'a>> , RouterError> {
                                                                 let cluster_pairs: Vec<(String,u16)>
                                                                                                      = table_sec.each_cluster_table_split_count 
                                                                                                      .as_ref()
-                                                                                                     .ok_or(RouterError::ShardSchemaParameterILL("no each_cluster_table_split_count in TableSectionConfig".to_string()))
+                                                                                                     .ok_or_else(|| RouterError::ShardSchemaParameterILL("no each_cluster_table_split_count in TableSectionConfig".to_string()))
                                                                                                      .and_then(|tsc| {
                                                                                                             if tsc.len() != cluster_ids.len() {
                                                                                                                 return Err(RouterError::ShardSchemaParameterILL("Wrong case : each_cluster_table_split_count.len() != cluster_ids.len() in TableSectionConfig".to_string()));

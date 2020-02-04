@@ -7,6 +7,10 @@ pub enum RouterError{
     NoClusterConfig(String),
     NoNodeConfig(String),
     ShardSchemaIntegerRangeILL(String),
+    LookupErrShardValueEmpty,
+    LookupErrClusterPairsEmpty,
+    LookupErrShardValueILL(String),
+    LookupErrNotInIntegerRange(String),
 }
 
 /*impl std::convert::From<NoneError> for ShardRouterError {
@@ -26,6 +30,10 @@ impl std::fmt::Display for RouterError {
             RouterError::ShardSchemaParameterILL(s) => write!(f, "RouterError::ShardSchemaParameterILL: {}", s),
             RouterError::NoNodeConfig(s) => write!(f, "RouterError::NoNodeConfig: {}", s),
             RouterError::ShardSchemaIntegerRangeILL(s) => write!(f, "RouterError::ShardSchemaIntegerRangeILL: {}", s),
+            RouterError::LookupErrShardValueEmpty => write!(f, "RouterError::LookupErrShardValueEmpty"),
+            RouterError::LookupErrClusterPairsEmpty => write!(f, "RouterError::LookupErrClusterPairsEmpty"),
+            RouterError::LookupErrShardValueILL(s) => write!(f, "RouterError::LookupErrShardValueILL: {}", s),
+            RouterError::LookupErrNotInIntegerRange(s) => write!(f, "RouterError::LookupErrNotInIntegerRange: {}", s),
             //ShardRouterError::Other(e) => e.fmt(f),
         }
     }
@@ -41,6 +49,10 @@ impl std::error::Error for RouterError {
             RouterError::NoNodeConfig(..) => None,
             RouterError::ShardSchemaParameterILL(..) => None,
             RouterError::ShardSchemaIntegerRangeILL(..) => None,
+            RouterError::LookupErrShardValueEmpty => None,
+            RouterError::LookupErrClusterPairsEmpty => None,
+            RouterError::LookupErrShardValueILL(..) => None,
+            RouterError::LookupErrNotInIntegerRange(_) => None,
             //ShardRouterError::Other(e) => e.source(),
         }
     }
