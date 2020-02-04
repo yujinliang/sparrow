@@ -17,21 +17,21 @@ struct SchemaEntry<'a> {
 
 #[derive(Debug, Clone)]
 pub struct DBSectionEntry<'a> {
-    pub  db: String,
-    pub  cluster_ids: Vec<String>,
-    pub tables:HashMap<&'a str,TableSectionEntry>,
+     db: String,
+    cluster_ids: Vec<String>,
+    tables:HashMap<&'a str,TableSectionEntry>,
 }
 #[derive(Debug, Clone)]
 pub struct TableSectionEntry {
-    pub  table: String,
-    pub  shard_key: String,
-    pub  shard_type : ShardType,
-    pub  cluster_pairs: Vec<(String,u16)>, //Vec<(cluster_id , table_split_count)>
-    pub  integer_range:Vec<Range<u128>>,
+    table: String,
+    shard_key: String,
+    shard_type : ShardType,
+    cluster_pairs: Vec<(String,u16)>, //Vec<(cluster_id , table_split_count)>
+    integer_range:Vec<Range<u128>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum ShardType {
+enum ShardType {
     IntegerRange,
     Integer,
     Hash,
@@ -44,21 +44,37 @@ pub struct Router<'a> {
 }
 impl<'a> Router<'a> {
     //proxy user , db name
+    #[inline]
    pub fn lookup_db(&self, user:&str, db:&str) ->  Result<&'a DBSectionEntry, RouterError> {
-        unimplemented!();
+       self.schema_map
+              .get(user)
+              .ok_or_else(|| { RouterError::LookupErrSchemaNotExit })
+              .and_then(|schema| {
+                  schema
+                  .db_entries
+                  .get(db)
+                  .ok_or_else(|| {RouterError::LookupErrDBNotExist})
+              })
    }
 }
 impl<'a> DBSectionEntry<'a> {
-    pub fn load_cluster_ids(&self) -> Result<&Vec<&str>, RouterError> {
-        unimplemented!();
+    #[inline]
+    pub fn load_cluster_ids(&self) -> &Vec<String> {
+        &self.cluster_ids
     }
     //the result: (cluster_id, table_name)
+    #[inline]
     pub fn lookup_table(&self, table:&str) -> Result<&TableSectionEntry, RouterError> {
-        unimplemented!();
+            self.tables.get(table).ok_or_else(||{ RouterError::LookupErrTableNotExist})
     } 
 }
 impl TableSectionEntry {
+    #[inline]
+    pub fn get_shard_key(&self) -> &str {
+        &self.shard_key
+    }
     //the result: (cluster_id, table_name ) list.
+    #[inline]
     pub fn load_all_path(&self) -> Result<Vec<(&str, String)>, RouterError> {
         if self.cluster_pairs.is_empty() {
             return Err(RouterError::LookupErrClusterPairsEmpty);
@@ -77,6 +93,7 @@ impl TableSectionEntry {
         Ok(v)
     }
     //the result: (cluster_id, table_name)
+    #[inline]
     pub fn lookup_one_path(&self,  shard_val:&str) -> Result<(&str, String), RouterError> {
         if shard_val.trim().is_empty() {
             return Err(RouterError::LookupErrShardValueEmpty);

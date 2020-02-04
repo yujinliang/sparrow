@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
 use super::schema::DBShardSchemaConfig;
+use std::collections::HashMap;
 /// This is what we're going to decode into. Each field is optional, meaning
 /// that it doesn't have to be present in TOML.
 #[derive(Debug, Deserialize)]
@@ -59,8 +60,6 @@ pub struct DBClusterConfig {
     slave_node_ids: Option<Vec<String>>,
 }
 
-
-
 pub fn empty() -> Config {
     Config {
         global: None,
@@ -73,17 +72,14 @@ pub fn empty() -> Config {
 }
 //fn definition start here.
 pub fn load_config() -> Result<Config, Box<dyn Error>> {
-
     //1.find and read the config file.
     let config_path = std::env::args().nth(1).expect("Please at least give me the config file path.");
     let mut f = File::open(config_path).unwrap();
     let mut contents = String::new();
     f.read_to_string(&mut contents).unwrap();
-  
     //2. parse the toml 
     let cfg: Config = toml::de::from_str(&contents).unwrap();
     Ok(cfg)
-
 }
 
 impl Config {
@@ -110,33 +106,24 @@ impl Config {
             self.proxy.as_ref()?.listen_addr.as_deref()
         }
         #[inline]
-        pub fn load_proxy_user_list(&self) -> Option<Vec<(String, String)>> {
-               let user_tuple: Vec<(String, String)> =  self.proxy.as_ref()?.users.as_ref()?.iter().map(| pu |{ 
+        pub fn load_proxy_user_list(&self) -> Option<HashMap<String, String>> {
+              /* let user_tuple: Vec<(String, String)> =  self.proxy.as_ref()?.users.as_ref()?.iter().map(| pu |{ 
                    let user = pu.user.clone().unwrap_or_default().trim().to_string();
                    let pwd = pu.pwd.clone().unwrap_or_default().trim().to_string();
                     (user, pwd)
                }).collect();
-               Some(user_tuple)
+               Some(user_tuple)*/
+               unimplemented!()
         }
 
         #[inline]
-        pub fn get_db_cluster(&self, id : &str) -> Option<&DBClusterConfig> {
-                for x in self.cluster.as_ref().unwrap().iter() {
-                    if x.id.as_ref().unwrap() == id {
-                        return Some(x);
-                    }
-                }
-                None
-            }
+        pub fn load_db_cluster_config(&self) -> Option<&DBClusterConfig> {
+            unimplemented!();
+        }
         #[inline]
-        pub fn get_db_node(&self, id: &str) -> Option<&DBNodeConfig> {
-                for x in self.node.as_ref().unwrap().iter() {
-                    if x.id.as_ref().unwrap() == id {
-                        return Some(x);
-                    }
-                }
-                None
-            }
+        pub fn load_db_node_config(&self) -> Option<&DBNodeConfig> {
+            unimplemented!();
+        }
              
 } //end of impl Config
 

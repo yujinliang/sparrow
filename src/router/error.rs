@@ -4,13 +4,14 @@ pub enum RouterError{
     NoShardSchemaConfig,
     NoShardSchemaDBSectionConfig,
     ShardSchemaParameterILL(String),
-    NoClusterConfig(String),
-    NoNodeConfig(String),
     ShardSchemaIntegerRangeILL(String),
     LookupErrShardValueEmpty,
     LookupErrClusterPairsEmpty,
     LookupErrShardValueILL(String),
     LookupErrNotInIntegerRange(String),
+    LookupErrTableNotExist,
+    LookupErrDBNotExist,
+    LookupErrSchemaNotExit,
 }
 
 /*impl std::convert::From<NoneError> for ShardRouterError {
@@ -26,9 +27,10 @@ impl std::fmt::Display for RouterError {
         match self {
             RouterError::NoShardSchemaConfig =>  write!(f, "There is no database shard schema config!"),
             RouterError::NoShardSchemaDBSectionConfig =>  write!(f, "There is no db section in shard schema!"),
-            RouterError::NoClusterConfig(s) => write!(f, "RouterError::NoClusterConfig: {}", s),
+            RouterError::LookupErrTableNotExist => write!(f, "RouterError::LookupErrTableNotExist"),
             RouterError::ShardSchemaParameterILL(s) => write!(f, "RouterError::ShardSchemaParameterILL: {}", s),
-            RouterError::NoNodeConfig(s) => write!(f, "RouterError::NoNodeConfig: {}", s),
+            RouterError::LookupErrDBNotExist => write!(f, "RouterError::LookupErrDBNotExist"),
+            RouterError::LookupErrSchemaNotExit => write!(f, "RouterError::LookupErrSchemaNotExit"),
             RouterError::ShardSchemaIntegerRangeILL(s) => write!(f, "RouterError::ShardSchemaIntegerRangeILL: {}", s),
             RouterError::LookupErrShardValueEmpty => write!(f, "RouterError::LookupErrShardValueEmpty"),
             RouterError::LookupErrClusterPairsEmpty => write!(f, "RouterError::LookupErrClusterPairsEmpty"),
@@ -45,8 +47,9 @@ impl std::error::Error for RouterError {
         match self {
             RouterError::NoShardSchemaConfig =>  None,
             RouterError::NoShardSchemaDBSectionConfig =>  None,
-            RouterError::NoClusterConfig(..) => None,
-            RouterError::NoNodeConfig(..) => None,
+            RouterError::LookupErrSchemaNotExit => None,
+            RouterError::LookupErrDBNotExist => None,
+            RouterError::LookupErrTableNotExist => None,
             RouterError::ShardSchemaParameterILL(..) => None,
             RouterError::ShardSchemaIntegerRangeILL(..) => None,
             RouterError::LookupErrShardValueEmpty => None,

@@ -12,11 +12,8 @@ lazy_static::lazy_static! {
             config::load_config().unwrap_or_else(|_|{ config::empty()})
         };
 
-        //global config shortcut
-        static ref SHOTCUT_GLOBAL_CONFIG: config::ConfigShortcut = {
-            config::ConfigShortcut{
-                proxy_user_list: GLOBAL_CONFIG.load_proxy_user_list(),
-            }
+        static ref SHOTCUT_GLOBAL_CONFIG:config::ConfigShortcut = {
+            config::build_config_shortcut().unwrap_or_else(|_|{ config::shortcut::empty()})
         };
 }
 
