@@ -11,9 +11,9 @@
 
     [proxy]
     listen_addr = "127.0.0.1:9696"
-    charset = "gbk"
+    charset = "utf8"
     #proxy user auth.
-    proxy_users = [
+    users = [
 
         {user = "root", pwd = "root"},
         {user = "sparrow",pwd = "sparrow"}
@@ -27,7 +27,7 @@
 
 
     #db  instance list.
-    [[db_node_list]]
+    [[node]]
     id = "mysql_1"
     listen_addr = "0.0.0.0:9797"
     user = "root"
@@ -36,7 +36,7 @@
     #max_conns_limit = 100
     #---------
 
-    [[db_node_list]]
+    [[node]]
     id = "mysql_2"
     listen_addr = "0.0.0.0:9798"
     user = "root"
@@ -45,7 +45,7 @@
     #max_conns_limit = 100
     #---------
 
-    [[db_node_list]]
+    [[node]]
     id = "mysql_3"
     listen_addr = "0.0.0.0:9799"
     user = "root"
@@ -54,7 +54,7 @@
     #max_conns_limit = 100
     #---------
 
-    [[db_node_list]]
+    [[node]]
     id = "mysql_4"
     listen_addr = "0.0.0.0:9897"
     user = "root"
@@ -63,7 +63,7 @@
     #max_conns_limit = 100
     #---------
 
-    [[db_node_list]]
+    [[node]]
     id = "mysql_5"
     listen_addr = "0.0.0.0:9997"
     user = "root"
@@ -72,7 +72,7 @@
     #max_conns_limit = 100
     #---------
 
-    [[db_node_list]]
+    [[node]]
     id = "mysql_6"
     listen_addr = "0.0.0.0:9899"
     user = "root"
@@ -82,45 +82,47 @@
     #---------
 
     # define mysql cluster list.
-    [[db_cluster_list]]
+    [[cluster]]
     id = "cluster_1"
     master_node_id = "mysql_1"
-    slave_node_id_list= ["mysql_2", "mysql_3"]
+    slave_node_ids= ["mysql_2", "mysql_3"]
 
-    [[db_cluster_list]]
+    [[cluster]]
     id = "cluster_2"
     master_node_id = "mysql_4"
-    slave_node_id_list  = ["mysql_5", "mysql_6"]
+    slave_node_ids  = ["mysql_5", "mysql_6"]
 
-    #define db shard router info for each proxy user.
+    #define db shard schema for every proxy user
     #the "owner" which  is a proxy user  name.
-    [[db_shard_schema_list]]
-    owner = "root"
-    db = "test_db"
+    [[schema]]
+    owner = "root"   #Attention: owner of the schema must be unique!!!
+    [[schema.db]]
+    db = "db1"  #Attention : db name must be unique!!!
+    cluster_ids = ["cluster_1", "cluster_2"]
+    [[schema.db.table]]
     table = "hash_table"
     shard_key = "id"
-    db_cluster_id_list = ["cluster_1", "cluster_2"]
-    each_cluster_table_split_count = [ 2,7]
     shard_type = "hash"
-
-    #---
-    [[db_shard_schema_list]]
-    owner = "root"
-    db = "sparrow"
+    each_cluster_table_split_count = [ 2,7]
+    [[schema.db.table]]
+    table = "person"
+    shard_key = "code"
+    shard_type = "hash"
+    each_cluster_table_split_count = [ 3,10]
+    #-----------------
+    [[schema.db]]
+     db = "db2"
+     cluster_ids = ["cluster_1", "cluster_2"]
+    [[schema.db.table]]
     table = "ordinal_range_table"
     shard_key = "date_str"
-    db_cluster_id_list = ["cluster_1", "cluster_2"]
     shard_type = "integer_range"
-     # which means left close and right  open range , such as: [ 20191102, 20201102)
+     # which means left close and right  open range , [start, end), such as: [ 20191102, 20201102)
     integer_range = [ "20191102", "20201102", "20201102", "20221006"]
     each_cluster_table_split_count = [ 8,10]
-
-    #---
-    [[db_shard_schema_list]]
-    owner = "root"
-    db = "ordinal_db"
+   [[schema.db.table]]
     table = "integer_table"
     shard_key = "id"
-    db_cluster_id_list = ["cluster_1", "cluster_2"]
-    each_cluster_table_split_count = [ 3,9]
     shard_type = "integer"
+    each_cluster_table_split_count = [ 3,9]
+  

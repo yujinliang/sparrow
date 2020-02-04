@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("--Sparrow mysql/mariadb proxy running!--");
     println!("commit_id: {}compile_time: {}", COMMIT_ID, COMPILE_TIME);
     println!("------------------------------------------------------");
-    //println!("global config: {:?}", *GLOBAL_CONFIG); 
+    println!("global config: {:#?}", *GLOBAL_CONFIG); 
     //2 init log module
     setup_logger();
     info!("log module init ok!");

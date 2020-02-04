@@ -23,7 +23,7 @@ impl ProxyServer {
    pub fn run(&self) -> ProxyResult<()> {
     task::block_on(async {
           //init shard router
-        let shard_r = router::load_shard_router()?;
+        let shard_r = router::build_router()?;
         info!("shard router module init ok! {:?}", &shard_r);
 
         let listen_addr = crate::GLOBAL_CONFIG.query_proxy_listen_addr().unwrap_or_else(|| "127.0.0.1:9696");
@@ -44,7 +44,7 @@ impl ProxyServer {
     }
 } // impl end
 
-async fn process( stream: TcpStream, id : u32, r : Arc<router::Router>) ->  ProxyResult<()>  {
+async fn process<'a>( stream: TcpStream, id : u32, r : Arc<router::Router<'a>>) ->  ProxyResult<()>  {
     info!("Accepted from: {}, mysql thread id: {}", stream.peer_addr()?, id);
     let mut c2p = frontend::conn::C2PConn::build_c2p_conn(stream, id, r).await?;
     if let Err(e) = c2p.s2c_handshake().await {

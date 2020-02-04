@@ -1,5 +1,5 @@
-mod router_brain;
+mod decision;
 mod error;
-pub use router_brain::Router;
-pub use router_brain::load_shard_router;
-pub use error::ShardRouterError;
+pub use decision::Router;
+pub use error::RouterError;
+pub use decision::build_router;

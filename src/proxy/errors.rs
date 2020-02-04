@@ -22,8 +22,8 @@ impl From<frontend::errors::FrontendError> for ProxyError {
     }
 }
 
-impl From<router::ShardRouterError> for ProxyError {
-    fn from(e : router::ShardRouterError) -> Self {
+impl From<router::RouterError> for ProxyError {
+    fn from(e : router::RouterError) -> Self {
         ProxyError::Other(Box::new(e))
     }
 }

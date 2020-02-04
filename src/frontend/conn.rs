@@ -13,7 +13,7 @@ use crate::router;
 
 //client to proxy conn abstraction
 #[derive(Debug)]
-pub struct C2PConn {
+pub struct C2PConn<'a> {
     pkg: packetio::PacketIO,
     conn_id: u32,
     capability: constants::CapabilityFlags,
@@ -24,12 +24,12 @@ pub struct C2PConn {
     proxy_user: String,
     db:String,
 //--
-    r : sync::Arc<router::Router>,
+    r : sync::Arc<router::Router<'a>>,
 //--
     quit_flag:bool,
 }
 
-impl C2PConn {
+impl<'a> C2PConn<'a> {
 
     //https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
     //http://hutaow.com/blog/2013/11/06/mysql-protocol-analysis/#41
@@ -245,7 +245,7 @@ impl C2PConn {
 	}
     Ok(())
     }
-    pub async fn  build_c2p_conn(tcp: TcpStream, id: u32,  r : sync::Arc<router::Router>) -> FrontendResult<C2PConn> {
+    pub async fn  build_c2p_conn(tcp: TcpStream, id: u32,  r : sync::Arc<router::Router<'a>>) -> FrontendResult<C2PConn<'a>> {
             let pkg = packetio::PacketIO::new(tcp);
             let conn_id: u32 = id;
             let capability = constants::get_default_capability_flags();
