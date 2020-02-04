@@ -60,7 +60,21 @@ impl<'a> DBSectionEntry<'a> {
 impl TableSectionEntry {
     //the result: (cluster_id, table_name ) list.
     pub fn load_all_path(&self) -> Result<Vec<(&str, String)>, RouterError> {
-        unimplemented!();
+        if self.cluster_pairs.is_empty() {
+            return Err(RouterError::LookupErrClusterPairsEmpty);
+        }
+        let mut  v: Vec<(&str, String)> = Vec::new();
+        for pair in self.cluster_pairs.iter() {
+            if pair.1 > 1 {
+                for pos in 0..pair.1 {
+                    let table_final_name = format!("{}_{}", self.table, pos);
+                    v.push((&pair.0, table_final_name));
+                } 
+            } else {
+                v.push((&pair.0, self.table.clone()));
+            }
+        }
+        Ok(v)
     }
     //the result: (cluster_id, table_name)
     pub fn lookup_one_path(&self,  shard_val:&str) -> Result<(&str, String), RouterError> {
@@ -76,22 +90,32 @@ impl TableSectionEntry {
                     let shard_hash = s.finish(); //u64
                     let cluster_idx = (shard_hash % cluster_sum) as usize;
                    //table split count
-                    let table_idx = shard_hash % self.cluster_pairs[cluster_idx].1 as u64;
-                    let table_final_name = format!("{}_{}", self.table, table_idx);
-                     return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                   let tsc = self.cluster_pairs[cluster_idx].1 as u64;
+                   if tsc > 1 {
+                        let table_idx = shard_hash % tsc;
+                        let table_final_name = format!("{}_{}", self.table, table_idx);
+                        return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                   } else {
+                       return Ok((&self.cluster_pairs[cluster_idx].0, self.table.clone()));
+                   }
                 } 
                 Err(RouterError::LookupErrClusterPairsEmpty)
             },
             ShardType::Integer => {
                 let cluster_sum  = self.cluster_pairs.len() as u128 ;
                 if cluster_sum > 0 {
-                    let shard_u128 = u128::from_str_radix( shard_val, 10).map_err(|e| {
+                        let shard_u128 = u128::from_str_radix( shard_val, 10).map_err(|e| {
                         RouterError::LookupErrShardValueILL(format!("illegal integer: {:?}", e))
                     })?;
                     let cluster_idx = (shard_u128 % cluster_sum) as usize;
-                    let table_idx = shard_u128 % self.cluster_pairs[cluster_idx].1 as u128;
-                    let table_final_name = format!("{}_{}", self.table, table_idx);
-                    return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                    let tsc = self.cluster_pairs[cluster_idx].1 as u128;
+                    if tsc > 1 {
+                        let table_idx = shard_u128 % tsc;
+                        let table_final_name = format!("{}_{}", self.table, table_idx);
+                        return Ok((&self.cluster_pairs[cluster_idx].0, table_final_name));   
+                    } else {
+                        return Ok((&self.cluster_pairs[cluster_idx].0, self.table.clone()));
+                    }
                 }
                 Err(RouterError::LookupErrClusterPairsEmpty)
             },
@@ -103,9 +127,14 @@ impl TableSectionEntry {
                     })?;
                     for (pos, r) in self.integer_range.iter().enumerate() {
                         if r.contains(&shard_u128) {
-                            let table_idx = shard_u128 % self.cluster_pairs[pos].1 as u128;
-                            let table_final_name = format!("{}_{}", self.table, table_idx);
-                            return Ok((&self.cluster_pairs[pos].0, table_final_name));   
+                            let tsc = self.cluster_pairs[pos].1 as u128;
+                            if tsc > 1 {
+                                let table_idx = shard_u128 % tsc;
+                                let table_final_name = format!("{}_{}", self.table, table_idx);
+                                return Ok((&self.cluster_pairs[pos].0, table_final_name));   
+                            } else {
+                                return Ok((&self.cluster_pairs[pos].0, self.table.clone()));
+                            }
                         }
                     }
                     return Err(RouterError::LookupErrNotInIntegerRange(format!("{:?} not in integer range", shard_val)));
