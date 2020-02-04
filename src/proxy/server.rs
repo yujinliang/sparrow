@@ -24,7 +24,7 @@ impl ProxyServer {
     task::block_on(async {
           //init shard router
         let shard_r = router::build_router()?;
-        info!("shard router module init ok! {:?}", &shard_r);
+        info!("shard router module init ok! {:#?}", &shard_r);
 
         let listen_addr = crate::GLOBAL_CONFIG.query_proxy_listen_addr().unwrap_or_else(|| "127.0.0.1:9696");
         let ipv4_listener = TcpListener::bind(listen_addr).await?;
