@@ -6,17 +6,11 @@ use std::error::Error;
 #[derive(Debug, Clone)]
 pub struct ConfigShortcut {
     //should use hashmap to replace vec for efficiency!
-    proxy_user_list: Option<HashMap<String, String>>,
-    node_list: Option<HashMap<String, DBNodeConfig>>,
-    cluster_list: Option<HashMap<String, DBClusterConfig>>,
+    proxy_user_list: HashMap<String, String>,
+    node_list: HashMap<String, DBNodeConfig>,
+    cluster_list: HashMap<String, DBClusterConfig>,
 }
-pub fn empty() -> ConfigShortcut {
-    ConfigShortcut {
-        proxy_user_list: None,
-        node_list: None,
-        cluster_list: None,
-    }
-}
+
 pub fn build_config_shortcut() -> Result<ConfigShortcut, Box<dyn Error>> {
     let csc = ConfigShortcut {
         proxy_user_list: crate::GLOBAL_CONFIG.load_proxy_user_list(),
@@ -28,15 +22,15 @@ pub fn build_config_shortcut() -> Result<ConfigShortcut, Box<dyn Error>> {
 impl ConfigShortcut {
     #[inline]
     pub fn check_proxy_user_exists(&self, user: &str) -> Option<(&String, &String)> {
-            self.proxy_user_list.as_ref()?.get_key_value(user)
+            self.proxy_user_list.get_key_value(user)
     }
 
     #[inline]
-    pub fn get_db_cluster_config(&self, id : &str) -> Option<&DBClusterConfig> {
-        self.cluster_list.as_ref()?.get(id)
+    pub fn get_db_cluster_config(&self, id : &str) -> &DBClusterConfig {
+        self.cluster_list.get(id).unwrap()
     }
     #[inline]
-    pub fn get_db_node_config(&self, id: &str) -> Option<&DBNodeConfig> {
-        self.node_list.as_ref()?.get(id)
+    pub fn get_db_node_config(&self, id: &str) -> &DBNodeConfig {
+        self.node_list.get(id).unwrap()
     }
 }

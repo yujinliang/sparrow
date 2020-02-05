@@ -5,16 +5,21 @@ use std::io::prelude::*;
 use std::error::Error;
 use super::schema::DBShardSchemaConfig;
 use std::collections::HashMap;
+
+pub mod constants {
+    //min unit : second
+    pub static DB_NODE_TIME_TO_NO_ALIVE: u64 = 600; //10 minutes
+}
 /// This is what we're going to decode into. Each field is optional, meaning
 /// that it doesn't have to be present in TOML.
 #[derive(Debug, Deserialize)]
 pub struct Config {
      pub   global: Option<GlobalConfig>,
-     pub   proxy: Option<ProxyConfig>,
+     pub   proxy: ProxyConfig,
      pub   web:Option<WebConfig>,
-     pub  node:Option<Vec<DBNodeConfig>>,
-     pub  cluster:Option<Vec<DBClusterConfig>>,
-     pub  schema:Option<Vec<DBShardSchemaConfig>>,
+     pub  node:Vec<DBNodeConfig>,
+     pub  cluster:Vec<DBClusterConfig>,
+     pub  schema:Vec<DBShardSchemaConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -26,50 +31,40 @@ pub struct GlobalConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct ProxyConfig {
-    listen_addr: Option<String>,
+    listen_addr: String,
     charset: Option<String>,
-    users: Option<Vec<ProxyUser>>,
+    users: Vec<ProxyUser>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ProxyUser {
-    user: Option<String>,
-    pwd: Option<String>,
+    user: String,
+    pwd: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct WebConfig {
-    listen_addr: Option<String>,
-    web_user: Option<String>,
-    web_pwd: Option<String>,
+    listen_addr: String,
+    web_user: String,
+    web_pwd: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DBNodeConfig {
-    id: Option<String>,
-    listen_addr: Option<String>,
-    user: Option<String>,
-    pwd: Option<String>,
+    id: String,
+    listen_addr: String,
+    user: String,
+    pwd: String,
     time_to_no_alive: Option<u64>,
 }
 
 #[derive(Debug, Deserialize,Clone)]
 pub struct DBClusterConfig {
-     id: Option<String>,
-    master_node_id: Option<String>,
+     id: String,
+    master_node_id: String,
     slave_node_ids: Option<Vec<String>>,
 }
 
-pub fn empty() -> Config {
-    Config {
-        global: None,
-        proxy: None,
-        web:None,
-        node:None,
-        cluster:None,
-        schema:None,
-    }
-}
 //fn definition start here.
 pub fn load_config() -> Result<Config, Box<dyn Error>> {
     //1.find and read the config file.
@@ -102,51 +97,45 @@ impl Config {
             })
         }
         #[inline]
-        pub fn query_proxy_listen_addr(&self) -> Option<&str> {
-            self.proxy.as_ref()?.listen_addr.as_deref()
+        pub fn query_proxy_listen_addr(&self) -> &str {
+            &self.proxy.listen_addr
         }
         #[inline]
-        pub fn load_proxy_user_list(&self) -> Option<HashMap<String, String>> {
+        pub fn load_proxy_user_list(&self) -> HashMap<String, String> {
                let user_map : HashMap<String, String> 
                                             = self.proxy
-                                            .as_ref()?
                                             .users
-                                            .as_ref() ?
                                             .iter()
                                             .map(|pu| {
-                                                let user = pu.user.clone().unwrap_or_default().trim().to_string();
-                                                let pwd = pu.pwd.clone().unwrap_or_default().trim().to_string();
+                                                let user = pu.user.trim().to_string();
+                                                let pwd = pu.pwd.trim().to_string();
                                                 (user, pwd)
                                             } )
                                             .collect();
-                Some(user_map)
+                user_map
         }
 
         #[inline]
-        pub fn load_db_cluster_config(&self) -> Option< HashMap<String, DBClusterConfig>>{
+        pub fn load_db_cluster_config(&self) -> HashMap<String, DBClusterConfig> {
                  let cluster_map : HashMap<String, DBClusterConfig> 
                  = self.cluster
-                 .as_ref()?
                 .iter()
                 .map(|cc| {
-                    let id = cc.id.as_ref().unwrap().to_string();
-                     (id, cc.clone())
+                     (cc.id.clone(), cc.clone())
                 })
                 .collect();
-                Some(cluster_map)
+                cluster_map
         }
         #[inline]
-        pub fn load_db_node_config(&self) -> Option< HashMap<String, DBNodeConfig>> {
+        pub fn load_db_node_config(&self) -> HashMap<String, DBNodeConfig> {
                 let node_map : HashMap<String, DBNodeConfig> 
                                               = self.node
-                                              .as_ref()?
                                               .iter()
                                               .map(|nc| {
-                                                    let id = nc.id.as_ref().unwrap().to_string();
-                                                    (id, nc.clone())
+                                                    (nc.id.clone(), nc.clone())
                                               })
                                               .collect();
-                Some(node_map)
+                node_map
         }
              
 } //end of impl Config

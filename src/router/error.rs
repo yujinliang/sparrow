@@ -1,8 +1,6 @@
 #![allow(dead_code)] 
 #[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Clone)]
 pub enum RouterError{
-    NoShardSchemaConfig,
-    NoShardSchemaDBSectionConfig,
     ShardSchemaParameterILL(String),
     ShardSchemaIntegerRangeILL(String),
     LookupErrShardValueEmpty,
@@ -25,8 +23,6 @@ impl std::fmt::Display for RouterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         
         match self {
-            RouterError::NoShardSchemaConfig =>  write!(f, "There is no database shard schema config!"),
-            RouterError::NoShardSchemaDBSectionConfig =>  write!(f, "There is no db section in shard schema!"),
             RouterError::LookupErrTableNotExist => write!(f, "RouterError::LookupErrTableNotExist"),
             RouterError::ShardSchemaParameterILL(s) => write!(f, "RouterError::ShardSchemaParameterILL: {}", s),
             RouterError::LookupErrDBNotExist => write!(f, "RouterError::LookupErrDBNotExist"),
@@ -45,8 +41,6 @@ impl std::error::Error for RouterError {
 
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            RouterError::NoShardSchemaConfig =>  None,
-            RouterError::NoShardSchemaDBSectionConfig =>  None,
             RouterError::LookupErrSchemaNotExit => None,
             RouterError::LookupErrDBNotExist => None,
             RouterError::LookupErrTableNotExist => None,

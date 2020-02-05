@@ -9,11 +9,11 @@ use log::info;
 lazy_static::lazy_static! {
         //1 init global config
         static ref  GLOBAL_CONFIG: config::Config = {
-            config::load_config().unwrap_or_else(|_|{ config::empty()})
+            config::load_config().unwrap()
         };
 
         static ref SHOTCUT_GLOBAL_CONFIG:config::ConfigShortcut = {
-            config::build_config_shortcut().unwrap_or_else(|_|{ config::shortcut::empty()})
+            config::build_config_shortcut().unwrap()
         };
 }
 
