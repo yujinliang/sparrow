@@ -16,7 +16,7 @@ pub fn random_salt( size : usize) -> MysqlResult<Vec<u8>> {
 //defaultAuthPlugin: mysql_native_password
 //golang drive code: authResp := scramblePassword(authData[:20], mc.cfg.Passwd)
 // Hash password using 4.1+ method (SHA1)
-pub fn  scramble_password(scramble: &[u8], password:String) -> Option<Vec<u8>> {
+pub fn  scramble_password(scramble: &[u8], password:&str) -> Option<Vec<u8>> {
         if password.is_empty() {
                 return None;
         }

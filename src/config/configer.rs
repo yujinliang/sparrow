@@ -53,7 +53,7 @@ pub struct DBNodeConfig {
     time_to_no_alive: Option<u64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize,Clone)]
 pub struct DBClusterConfig {
      id: Option<String>,
     master_node_id: Option<String>,
@@ -107,22 +107,46 @@ impl Config {
         }
         #[inline]
         pub fn load_proxy_user_list(&self) -> Option<HashMap<String, String>> {
-              /* let user_tuple: Vec<(String, String)> =  self.proxy.as_ref()?.users.as_ref()?.iter().map(| pu |{ 
-                   let user = pu.user.clone().unwrap_or_default().trim().to_string();
-                   let pwd = pu.pwd.clone().unwrap_or_default().trim().to_string();
-                    (user, pwd)
-               }).collect();
-               Some(user_tuple)*/
-               unimplemented!()
+               let user_map : HashMap<String, String> 
+                                            = self.proxy
+                                            .as_ref()?
+                                            .users
+                                            .as_ref() ?
+                                            .iter()
+                                            .map(|pu| {
+                                                let user = pu.user.clone().unwrap_or_default().trim().to_string();
+                                                let pwd = pu.pwd.clone().unwrap_or_default().trim().to_string();
+                                                (user, pwd)
+                                            } )
+                                            .collect();
+                Some(user_map)
         }
 
         #[inline]
-        pub fn load_db_cluster_config(&self) -> Option<&DBClusterConfig> {
-            unimplemented!();
+        pub fn load_db_cluster_config(&self) -> Option< HashMap<String, DBClusterConfig>>{
+                 let cluster_map : HashMap<String, DBClusterConfig> 
+                 = self.cluster
+                 .as_ref()?
+                .iter()
+                .map(|cc| {
+                    let id = cc.id.as_ref().unwrap().to_string();
+                     (id, cc.clone())
+                })
+                .collect();
+                Some(cluster_map)
         }
         #[inline]
-        pub fn load_db_node_config(&self) -> Option<&DBNodeConfig> {
-            unimplemented!();
+        pub fn load_db_node_config(&self) -> Option< HashMap<String, DBNodeConfig>> {
+                let node_map : HashMap<String, DBNodeConfig> 
+                                              = self.node
+                                              .as_ref()?
+                                              .iter()
+                                              .map(|nc| {
+                                                    let id = nc.id.as_ref().unwrap().to_string();
+                                                    (id, nc.clone())
+                                              })
+                                              .collect();
+                Some(node_map)
         }
              
 } //end of impl Config
