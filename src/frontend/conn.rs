@@ -251,7 +251,7 @@ impl<'a> C2PConn<'a> {
             let conn_id: u32 = id;
             let capability = constants::get_default_capability_flags();
             let salt:Vec<u8> = utils::random_salt(20)?;
-            let collation_id: u8 = constants::UTF8_GENERAL_CI;
+            let collation_id: u8 = constants::UTF8MB4_GENERAL_CI;
             let status = constants::StatusFlags::SERVER_STATUS_AUTOCOMMIT;
             let proxy_user: String = String::new();
             let db:String = String::new();
