@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use crate::mysql::{packetio, constants, utils};
-use super::error::{BackendResult, BackendError};
+use super::error::{BackendResult};
 use async_std::net::TcpStream;
 
 #[derive(Debug)]

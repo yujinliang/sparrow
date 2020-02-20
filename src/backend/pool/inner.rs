@@ -167,6 +167,7 @@ impl NodePipeLine {
             let mut conn_list = self_shared.grow(self_shared.min_conns_limit).await;
              self_shared.inner.lock().await.takeup_new_conn(&mut conn_list).await;
         });
+        self.loop_check().await;
     }
     #[inline]
     pub async fn get_conn(self: &Arc<Self>) -> BackendResult<P2MConn> {
