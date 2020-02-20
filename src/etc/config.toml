@@ -12,6 +12,7 @@
     [proxy]
     listen_addr = "127.0.0.1:9696"
     charset = "utf8"
+    time_to_no_alive = 3600
     #proxy user auth.
     users = [
 
@@ -32,8 +33,7 @@
     listen_addr = "0.0.0.0:9797"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     [[node]]
@@ -41,8 +41,7 @@
     listen_addr = "0.0.0.0:9798"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     [[node]]
@@ -50,8 +49,7 @@
     listen_addr = "0.0.0.0:9799"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     [[node]]
@@ -59,8 +57,7 @@
     listen_addr = "0.0.0.0:9897"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     [[node]]
@@ -68,8 +65,7 @@
     listen_addr = "0.0.0.0:9997"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     [[node]]
@@ -77,8 +73,7 @@
     listen_addr = "0.0.0.0:9899"
     user = "root"
     pwd = "root"
-    time_to_no_alive = 100 #ms
-    #max_conns_limit = 100
+    max_conns_limit = 10000
     #---------
 
     # define mysql cluster list.

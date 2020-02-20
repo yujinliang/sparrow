@@ -8,8 +8,7 @@ use async_std::sync::Arc;
 use super::errors::{ProxyResult, ProxyError};
 use log::info;
 use crate::frontend;
-use std::sync::atomic::{AtomicU32, Ordering};
-use crate::mysql::{packet, errcode};
+use crate::mysql::{packet, errcode, utils};
 
 #[derive(Debug)]
 pub struct ProxyServer{}
@@ -34,7 +33,7 @@ impl ProxyServer {
             let stream = stream?;
             let client_router = shard_r.clone();
             task::spawn(async move {    
-                    let rc = process(stream, generate_id(), client_router).await;
+                    let rc = process(stream, utils::generate_id(), client_router).await;
                     info!("process result: {:?}", rc);
                     rc
              });
@@ -57,7 +56,4 @@ async fn process<'a>( stream: TcpStream, id : u32, r : Arc<router::Router<'a>>) 
     Ok(())
 }
 
- fn generate_id() -> u32 {
-    static COUNTER: AtomicU32 = AtomicU32::new(1);
-    COUNTER.fetch_add(1, Ordering::Relaxed)
-}
+ 

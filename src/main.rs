@@ -4,6 +4,8 @@ mod router;
 mod proxy;
 mod mysql;
 mod frontend;
+mod backend;
+mod analyer;
 use log::info;
 
 lazy_static::lazy_static! {

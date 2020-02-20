@@ -1,6 +1,7 @@
 #![allow(dead_code)] 
 use super::errors::{MysqlResult};
 use rand::{thread_rng, Rng};
+use std::sync::atomic::{AtomicU32, Ordering};
 use byteorder::{ByteOrder, LittleEndian as LE};
 
 pub fn random_salt( size : usize) -> MysqlResult<Vec<u8>> {
@@ -81,4 +82,9 @@ pub fn read_length_encoded_int(data: &[u8]) -> (usize ,u64) {
         } else {
                 (0,0)
         }
+}
+
+pub fn generate_id() -> u32 {
+        static COUNTER: AtomicU32 = AtomicU32::new(1);
+        COUNTER.fetch_add(1, Ordering::Relaxed)
 }

@@ -20,7 +20,6 @@ impl  PacketIO {
                     stream:s,
                 }
     }
-
     pub fn quit(&self) -> MysqlResult<()>{
             self.stream.shutdown(Shutdown::Both).map_err(|e| {
                 MysqlError::Io(e)
@@ -98,6 +97,5 @@ impl  PacketIO {
         self.sequence += 1;
         Ok(())      
     }
-
 }
 

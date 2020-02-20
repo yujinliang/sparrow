@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 pub mod constants {
     //min unit : second
-    pub static DB_NODE_TIME_TO_NO_ALIVE: u64 = 600; //10 minutes
+    pub static DB_NODE_TIME_TO_NO_ALIVE: u64 = 1800; //10 minutes
 }
 /// This is what we're going to decode into. Each field is optional, meaning
 /// that it doesn't have to be present in TOML.
@@ -34,6 +34,7 @@ pub struct ProxyConfig {
     listen_addr: String,
     charset: Option<String>,
     users: Vec<ProxyUser>,
+    time_to_no_alive: Option<u64>, //none or zero value is for unlimited.
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,7 +56,7 @@ pub struct DBNodeConfig {
     listen_addr: String,
     user: String,
     pwd: String,
-    time_to_no_alive: Option<u64>,
+    max_conns_limit: Option<u64>, //none or zero value is for unlimited.
 }
 
 #[derive(Debug, Deserialize,Clone)]
