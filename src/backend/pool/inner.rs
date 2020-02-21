@@ -91,7 +91,7 @@ impl InnerLine {
         } else  {
             shrink_count 
         };
-        (false, 0)
+        (false, shrink_count)
     }
     #[inline]
     async fn is_offline(&self) -> bool {
@@ -217,14 +217,18 @@ impl NodePipeLine {
         self.inner.lock().await.offline().await
   
     }
+    pub async fn reonline(self: &Arc<Self>) {
+        let mut conn_list = self.grow(self.min_conns_limit).await;
+        let mut l = self.inner.lock().await;
+        l.takeup_new_conn(&mut conn_list).await;
+        l.offline = false;
+        l.quit = false;
+   }
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
    }
    pub async fn quit(self: &Arc<Self>) {
         self.inner.lock().await.quit().await
-    }
-   pub async fn is_quit(self: &Arc<Self>) -> bool {
-        self.inner.lock().await.quit
     }
     async fn grow(self: &Arc<Self>, size:u16)  ->  LinkedList<P2MConn> {   
             let mut conns: LinkedList<P2MConn> = LinkedList::new();
