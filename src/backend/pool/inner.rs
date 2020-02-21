@@ -20,7 +20,7 @@ struct InnerLine {
 }
 impl InnerLine {
     #[inline]
-    async fn build() -> InnerLine {
+    async fn new() -> InnerLine {
         InnerLine{
             cache:  LinkedList::new(), 
             recent_request_time:0,
@@ -124,7 +124,7 @@ pub struct NodePipeLine {
 
 impl NodePipeLine {
     #[inline]
-    pub async fn build(       
+    pub async fn new(       
         mysql_user: String,
         mysql_pwd:String,
         mysql_addr:String,
@@ -142,7 +142,7 @@ impl NodePipeLine {
         reconnect_retry_min_interval:u16 
         ) -> Arc<Self> {
         Arc::new(NodePipeLine{
-            inner: Mutex::new(InnerLine::build().await),
+            inner: Mutex::new(InnerLine::new().await),
             mysql_user,
             mysql_pwd,
             mysql_addr,
@@ -160,7 +160,6 @@ impl NodePipeLine {
             reconnect_retry_min_interval,
         })
     }
-    #[inline]
     pub async fn init(self: &Arc<Self>)  {
         let self_shared = self.clone();
         task::spawn(async move {
@@ -169,7 +168,6 @@ impl NodePipeLine {
         });
         self.loop_check().await;
     }
-    #[inline]
     pub async fn get_conn(self: &Arc<Self>) -> BackendResult<P2MConn> {
        let mut l = self.inner.lock().await;
        if l.is_offline().await { 
@@ -194,7 +192,6 @@ impl NodePipeLine {
             }
        }
     }
-    #[inline]
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
         let mut l = self.inner.lock().await;
@@ -207,24 +204,19 @@ impl NodePipeLine {
             l.eliminate(1).await;
         }
     }
-    #[inline]
     pub async fn offline(self: &Arc<Self>) {
         self.inner.lock().await.offline().await
   
     }
-    #[inline]
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
    }
-   #[inline]
    pub async fn quit(self: &Arc<Self>) {
         self.inner.lock().await.quit().await
     }
-   #[inline]
    pub async fn is_quit(self: &Arc<Self>) -> bool {
         self.inner.lock().await.quit
     }
-    #[inline]
     async fn grow(self: &Arc<Self>, size:u16)  ->  LinkedList<P2MConn> {   
             let mut conns: LinkedList<P2MConn> = LinkedList::new();
             let mut tasks: Vec<JoinHandle<BackendResult<P2MConn>>> = Vec::new();
@@ -278,7 +270,6 @@ impl NodePipeLine {
         });
     }
 }
-#[inline]
 async fn health_check(receiver: &Arc<NodePipeLine>) {
         let self_shared = receiver.clone();  
         task::spawn(async move {
@@ -293,7 +284,6 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
             */ 
         });
 }
-#[inline]
 #[allow(unused_must_use)]
 async fn shrink_check(receiver: &Arc<NodePipeLine>) {
     let mut l = receiver.inner.lock().await;
