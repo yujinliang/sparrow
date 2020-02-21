@@ -81,8 +81,17 @@ impl InnerLine {
         self.cache.append(conns);
         self.total_conn_count += conns.len() as u64;
     }
-    async fn whether_to_start_shrink(&self, now: u64, threshold: u64) -> bool {
-        unimplemented!();
+    async fn whether_to_start_shrink(&self,  time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
+        let cache_size = self.get_cache_size().await;
+        if cache_size <= min_conns_limit as u64 {
+            return (false, 0);
+        }
+        let shrink_count = if (cache_size - shrink_count as u64 ) <= min_conns_limit as u64{
+            min_conns_limit - cache_size as u16 + shrink_count 
+        } else  {
+            shrink_count 
+        };
+        (false, 0)
     }
     #[inline]
     async fn is_offline(&self) -> bool {
@@ -256,15 +265,11 @@ impl NodePipeLine {
         let self_shared = self.clone();  
         task::spawn(async move {
             loop {
-                    //0. Todo: check if terminate
-                    if self_shared.is_quit().await {
-                        return;
-                    }
-                    //1. check conn health
-                    health_check(&self_shared).await;
-                    //2. shrink check
-                    shrink_check(&self_shared).await;
-                    //3. sleep at time_to_check_interval
+                     if !shrink_or_quit_check(&self_shared).await {
+                             health_check(&self_shared).await;
+                     } else {
+                         return;
+                     }
                     task::sleep(Duration::from_secs(self_shared.time_to_check_interval)).await;
             }
         });
@@ -285,19 +290,15 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
         });
 }
 #[allow(unused_must_use)]
-async fn shrink_check(receiver: &Arc<NodePipeLine>) {
+async fn shrink_or_quit_check(receiver: &Arc<NodePipeLine>) -> bool {
     let mut l = receiver.inner.lock().await;
-    let inner_size = l.get_cache_size().await;
-    if inner_size <= receiver.min_conns_limit as u64 {
-        return;
+    if l.quit {
+        return l.quit;
     }
-    if !l.whether_to_start_shrink(0, receiver.idle_time_to_shrink).await {
-        return;
+    let decision = l.whether_to_start_shrink(receiver.idle_time_to_shrink, receiver.min_conns_limit, receiver.shrink_count).await;
+    if !decision.0 {
+        return l.quit;
     }
-    let shrink_count = if (inner_size - receiver.shrink_count as u64 ) <= receiver.min_conns_limit as u64{
-        receiver.min_conns_limit - inner_size as u16 + receiver.shrink_count 
-    } else  {
-        receiver.shrink_count 
-    };
-    l.eliminate(shrink_count).await;  
+    l.eliminate(decision.1).await;  
+    l.quit
 }
