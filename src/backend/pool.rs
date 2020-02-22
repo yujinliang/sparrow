@@ -4,10 +4,12 @@ use std::collections::{HashMap, LinkedList};
 use super::error::{BackendResult, BackendError};
 use async_std::sync::Arc;
 pub mod inner;
+pub mod node;
+pub mod node_cfg;
 
 struct P2MConnPool {
     //static const  relationship data
-        node_conns:HashMap<String, Arc<inner::NodePipeLine>>,
+        node_conns:HashMap<String, Arc<node::NodePipeLine>>,
         cluster_id_node_ids: HashMap<String, Vec<String>>, //Attention: the index:0 is always master node id forever!
 }
 
