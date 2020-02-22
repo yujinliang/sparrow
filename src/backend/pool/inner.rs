@@ -35,7 +35,7 @@ impl InnerLine {
         self. cache.len() as u64
     }
     async fn update_time_stamp(&mut self) {
-        unimplemented!();
+        self.recent_request_time = 0;
     }
     #[inline]
     async fn lend_conn(&mut self) -> BackendResult<P2MConn> {  
@@ -57,12 +57,13 @@ impl InnerLine {
     }
     #[inline]
     #[allow(unused_must_use)]
-    async fn eliminate_all(&mut self) {
+    async fn eliminate_all(&mut self) -> BackendResult<()> {
         for _ in 0..self.cache.len() {
-            self.cache.pop_front().unwrap().quit();
+            self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
             self.total_conn_count -= 1;
             self.lend_conn_count -= 1;
         }
+        Ok(())
     }
     #[inline]
     #[allow(unused_must_use)]
@@ -81,6 +82,16 @@ impl InnerLine {
         self.cache.append(conns);
         self.total_conn_count += conns.len() as u64;
     }
+    #[inline]
+    async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> ) {
+        self.recent_request_time = 0;
+        self.total_conn_count = 0;
+        self.lend_conn_count = 0;
+        self.cache.append(conns);
+        self.total_conn_count += conns.len() as u64;
+        self.quit = false;
+        self.offline = false;
+    }
     async fn whether_to_start_shrink(&self,  time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
         let cache_size = self.get_cache_size().await;
         if cache_size <= min_conns_limit as u64 {
@@ -98,11 +109,13 @@ impl InnerLine {
          self.offline || self.quit
     }
     #[inline]
+    #[allow(unused_must_use)]
     async fn offline(&mut self) {
         self.offline = true;
         self.eliminate_all().await;
     }
     #[inline]
+    #[allow(unused_must_use)]
      async fn quit(&mut self) {
         self.quit = true;
         self.offline = true;  
@@ -197,7 +210,7 @@ impl NodePipeLine {
                  return l.lend_conn().await;
             } else  {
                  return Err(BackendError::InnerErrPipeEmpty);
-                 //Todo: wait condition var or semphore until  inner cache size > 0;
+                 //fast fail!
             }
        }
     }
@@ -219,10 +232,7 @@ impl NodePipeLine {
     }
     pub async fn reonline(self: &Arc<Self>) {
         let mut conn_list = self.grow(self.min_conns_limit).await;
-        let mut l = self.inner.lock().await;
-        l.takeup_new_conn(&mut conn_list).await;
-        l.offline = false;
-        l.quit = false;
+        self.inner.lock().await.reonline_with(&mut conn_list).await;
    }
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
@@ -260,7 +270,7 @@ impl NodePipeLine {
            for t in  tasks {
                match t.await {
                    Ok(c) => conns.push_back(c),
-                   e => info!("{:?}", e),
+                   e => info!("create new mysql conn failed: {:?}", e),
                }
            }
            conns
