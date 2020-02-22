@@ -18,19 +18,19 @@ impl P2MConnPool {
     pub async fn get_conns(&self, cluster_ids: &[String], force_master:bool) -> BackendResult<LinkedList<P2MConn>> {
        let mut v : LinkedList<P2MConn> = LinkedList::new();
         for c_id in cluster_ids.iter() {
-            let nodes = self.cluster_id_node_ids.get(c_id).ok_or_else(|| { BackendError::PoolErrClusterIdNotFound})?;
+            let nodes = self.cluster_id_node_ids.get(c_id).ok_or_else(|| { BackendError::PoolErrClusterIdNotFound(c_id.to_string())})?;
             let node_line = if force_master {   
-                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?
+                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeNotFound(nodes[0].to_string())})?
             } else if nodes.len() > 1 {
                let n_id = &nodes[0];//rand to choose one in nodes.
-               let n_line = self.node_conns.get(n_id).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?;
+               let n_line = self.node_conns.get(n_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(n_id.to_string())})?;
                if n_line.is_offline().await {
-                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?
+                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeNotFound(nodes[0].to_string())})?
                } else {
                    n_line
                }
             } else {
-                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?
+                self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeNotFound(nodes[0].to_string())})?
             };
             if node_line.is_offline().await {
                 return Err(BackendError::InnerErrOfflineOrQuit);
@@ -44,16 +44,12 @@ impl P2MConnPool {
             n.recycle(conn).await;
         }
     }
-    pub async fn reonline_node(&self, node_ids:&[String]) -> BackendResult<()> {
-        for n_id in node_ids.iter() {
-            self.node_conns.get(n_id).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?.reonline().await;
-        }
+    pub async fn reonline_node(&self, node_id:&str) -> BackendResult<()> {
+        self.node_conns.get(node_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(node_id.to_string())})?.reonline().await?;    
         Ok(())
     }
-    pub async fn offline_node(&self, node_ids:&[String]) -> BackendResult<()> {
-        for n_id in node_ids.iter() {
-            self.node_conns.get(n_id).ok_or_else(|| { BackendError::PoolErrNodeLineNotFound})?.offline().await;
-        }
+    pub async fn offline_node(&self, node_id:&str) -> BackendResult<()> {
+        self.node_conns.get(node_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(node_id.to_string())})?.offline().await;   
         Ok(())
     }
     pub async fn quit(&self) {

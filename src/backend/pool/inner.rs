@@ -92,7 +92,7 @@ impl InnerLine {
         self.quit = false;
         self.offline = false;
     }
-    async fn whether_to_start_shrink(&self,  time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
+    async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
         let cache_size = self.get_cache_size().await;
         if cache_size <= min_conns_limit as u64 {
             return (false, 0);
@@ -130,8 +130,8 @@ pub struct NodePipeLine {
         mysql_user: String,
         mysql_pwd:String,
         mysql_addr:String,
-        cluster_id:String,
-        node_id:String,
+        pub cluster_id:String,
+        pub node_id:String,
         max_conns_limit:u64,
         min_conns_limit:u16,
         grow_count: u16,
@@ -146,6 +146,7 @@ pub struct NodePipeLine {
 
 impl NodePipeLine {
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub async fn new(       
         mysql_user: String,
         mysql_pwd:String,
@@ -197,9 +198,8 @@ impl NodePipeLine {
        }
        l.update_time_stamp().await;
        if l.get_cache_size().await > self.min_conns_limit.into() {
-           return l.lend_conn().await;
-       } else {
-            if l.total_conn_count < self.max_conns_limit {
+            l.lend_conn().await
+       } else if l.total_conn_count < self.max_conns_limit {
                 let grow_c = if (l.total_conn_count + self.grow_count as u64) <= self.max_conns_limit {
                     self.grow_count
                 } else {
@@ -207,12 +207,11 @@ impl NodePipeLine {
                 };
                  let mut conn_list = self.grow(grow_c).await;
                  l.takeup_new_conn(&mut conn_list).await;
-                 return l.lend_conn().await;
-            } else  {
-                 return Err(BackendError::InnerErrPipeEmpty);
+                 l.lend_conn().await
+        } else  {
+                 Err(BackendError::InnerErrPipeEmpty)
                  //fast fail!
             }
-       }
     }
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
@@ -230,9 +229,14 @@ impl NodePipeLine {
         self.inner.lock().await.offline().await
   
     }
-    pub async fn reonline(self: &Arc<Self>) {
+    pub async fn reonline(self: &Arc<Self>) -> BackendResult<u16>{
         let mut conn_list = self.grow(self.min_conns_limit).await;
+        let l_size = conn_list.len();
+        if l_size == 0 {
+            return Err(BackendError::PoolErrConnGrowFailed(self.node_id.clone()));
+        }
         self.inner.lock().await.reonline_with(&mut conn_list).await;
+        Ok(l_size as u16)
    }
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
