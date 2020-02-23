@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use std::sync::atomic::{AtomicBool, Ordering}; //should async???
 use crate::mysql::{packetio, constants, utils};
 use super::error::{BackendResult};
 use async_std::net::TcpStream;
@@ -19,7 +20,7 @@ pub struct P2MConn {
     pub node_id:String,
     db:String,
 //--
-    quited:bool,
+    quited:AtomicBool,
 }
 
 impl P2MConn {
@@ -50,7 +51,7 @@ impl P2MConn {
             node_id,
             cluster_id,
             db,
-            quited:false,
+            quited:AtomicBool::new(false),
         })
 }
     pub async fn ping(&self) -> BackendResult<()> {
@@ -65,7 +66,7 @@ impl P2MConn {
     //真正的关闭网络链接。
     #[allow(unused_must_use)]
     pub fn quit(&self) {
-        if !self.quited {
+        if !self.quited.compare_and_swap(false, true, Ordering::Relaxed) {
             self.pkg.quit();
         }
     }
@@ -77,9 +78,6 @@ impl P2MConn {
 
 impl std::ops::Drop for P2MConn {
     fn drop(&mut self) {
-        if !self.quited {
-            self.quited = true;
-            self.quit();
-        }
+            self.quit(); 
     }
 }

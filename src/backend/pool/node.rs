@@ -139,15 +139,12 @@ impl NodePipeLine {
 async fn health_check(receiver: &Arc<NodePipeLine>) {
         let self_shared = receiver.clone();  
         task::spawn(async move {
-        info!("{:?}", self_shared);
-                /*3. ping one conn, if failed then shutdown and discard it 
-            * or to spawn a task to ping and reconnected mysql node , if failed then node offline
-            * if 同时ping所有conn, 代价太大，　所以只挑选一个conn  to check;　需要关闭mysql wait_time 或设置尽可能长，避免conn频繁失效。
-            * 如果ping 失败，　则　reconnect, 　间隔reconnect 3次，　认定node offline , discard all conns !
-            *  但是loop_check会一直运行知道退出！　当cache为空时，　其新建一个conn, 用于探测peer node 是否重新上线。
-            * if 重新上线，　则自动新建min_conns_limit个conn补充进cache!
-            * ping retry,  reconnect retry, sleep some time , finally, to be considered node offline.
-            */ 
+                //0. check if node is quited, if yes , then give up run.
+                //1. lend a conn or create new one.
+                //ping , if failed then retry n times at m interval, all retry failed then to be considered ping finally failed.
+                //if ping finally failed , then reconnect retry n times at m interval, all retry failed then to be considered reconnect finally failed.
+                //if reconnect finally failed, then to be considered node offline !
+                //if reconnect ok , then check whether it is node offline , if yes , then reonline it while it is not quited!
         });
 }
 #[allow(unused_must_use)]
