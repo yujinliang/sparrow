@@ -9,8 +9,6 @@ pub struct InnerLine {
     recent_request_time:u64,
     pub total_conn_count: u64,
     lend_conn_count:u64,
-    offline:bool, 
-    pub quit:bool,
 }
 impl InnerLine {
     #[inline]
@@ -20,8 +18,6 @@ impl InnerLine {
             recent_request_time:0,
             total_conn_count: 0,
             lend_conn_count:0,
-            offline:false, 
-            quit:false,
         }
     }
     #[inline]
@@ -51,13 +47,14 @@ impl InnerLine {
     }
     #[inline]
     #[allow(unused_must_use)]
-    async fn eliminate_all(&mut self) -> BackendResult<()> {
-        for _ in 0..self.cache.len() {
+    pub async fn eliminate_all(&mut self) -> BackendResult<usize> {
+        let c_size = self.cache.len();
+        for _ in 0..c_size {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
             self.total_conn_count -= 1;
             self.lend_conn_count -= 1;
         }
-        Ok(())
+        Ok(c_size)
     }
     #[inline]
     #[allow(unused_must_use)]
@@ -82,23 +79,15 @@ impl InnerLine {
         self.cache.push_back(conn)
     }
     #[inline]
-    pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> ) -> BackendResult<usize> {
-        if self.quit {
-            return Err(BackendError::InnerErrOfflineOrQuit);
-        }
+    pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> )  {
         let c_size =  conns.len();
         self.recent_request_time = 0;//now
         self.total_conn_count = 0;
         self.lend_conn_count = 0;
         self.total_conn_count += c_size as u64;
         self.cache.append(conns);
-        self.offline = false;
-        Ok(c_size)
     }
     pub async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
-        if self.quit {
-            return (false, 0);
-        }
         let cache_size = self.get_cache_size().await;
         if cache_size <= min_conns_limit as u64 {
             return (false, 0);
@@ -110,25 +99,5 @@ impl InnerLine {
         };
         (false, shrink_count)
     }
-    #[inline]
-    pub async fn is_offline(&self) -> bool {
-         self.offline || self.quit
-    }
-    #[inline]
-    pub async fn is_quit(&self) -> bool {
-         self.quit
-    }
-    #[inline]
-    #[allow(unused_must_use)]
-    pub async fn offline(&mut self) {
-        self.offline = true;
-        self.eliminate_all().await;
-    }
-    #[inline]
-    #[allow(unused_must_use)]
-     pub async fn quit(&mut self) {
-        self.quit = true;
-        self.offline = true;  
-        self.eliminate_all().await;
-     }
+
 }

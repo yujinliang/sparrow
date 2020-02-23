@@ -50,10 +50,10 @@ impl P2MConnPool {
         self.node_conns.get(node_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(node_id.to_string())})?.reonline().await?;    
         Ok(())
     }
-    pub async fn offline_node(&self, node_id:&str) -> BackendResult<()> {
-        self.node_conns.get(node_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(node_id.to_string())})?.offline().await;   
-        Ok(())
+    pub async fn offline_node(&self, node_id:&str) -> BackendResult<usize> {
+        self.node_conns.get(node_id).ok_or_else(|| { BackendError::PoolErrNodeNotFound(node_id.to_string())})?.offline().await  
     }
+    #[allow(unused_must_use)]
     pub async fn quit(&self) {
         for (_,n) in self.node_conns.iter() {
             n.quit().await;

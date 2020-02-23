@@ -9,11 +9,14 @@ use super::node_cfg::NodeCfg;
 use crate::backend::conn::P2MConn;
 use super::{BackendError, BackendResult};
 use std::collections::LinkedList;
+use std::sync::atomic::{AtomicBool, Ordering}; //should async???
 
 #[derive(Debug)]
 pub struct NodePipeLine {
         //dynamic data
         inner: Mutex<InnerLine>,
+        offline:AtomicBool, 
+        quit:AtomicBool,
         //static config data 
         pub cfg: NodeCfg,
 }
@@ -25,21 +28,23 @@ impl NodePipeLine {
         Arc::new(NodePipeLine{
             inner: Mutex::new(InnerLine::new().await),
             cfg,
+            offline: AtomicBool::new(false),
+            quit: AtomicBool::new(false),
         })
     }
     pub async fn init(self: &Arc<Self>)  {
         let self_shared = self.clone();
         task::spawn(async move {
-            let mut conn_list = self_shared.grow(self_shared.cfg.min_conns_limit).await;
+            let mut conn_list = grow(&self_shared, self_shared.cfg.min_conns_limit).await;
              self_shared.inner.lock().await.takeup_batch(&mut conn_list).await;
         });
         self.loop_check().await;
     }
     pub async fn get_conn(self: &Arc<Self>) -> BackendResult<P2MConn> {
-       let mut l = self.inner.lock().await;
-       if l.is_offline().await { 
+       if self.is_offline().await { 
            return Err(BackendError::InnerErrOfflineOrQuit);
        }
+       let mut l = self.inner.lock().await;
        l.update_time_stamp().await;
        if l.get_cache_size().await > self.cfg.min_conns_limit.into() {
             l.lend_conn().await
@@ -49,7 +54,7 @@ impl NodePipeLine {
                 } else {
                     (l.total_conn_count + self.cfg.grow_count as u64 - self.cfg.max_conns_limit) as u16
                 };
-                 let mut conn_list = self.grow(grow_c).await;
+                 let mut conn_list = grow(&self, grow_c).await;
                  l.takeup_batch(&mut conn_list).await;
                  l.lend_conn().await
         } else  {
@@ -60,7 +65,7 @@ impl NodePipeLine {
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
         let mut l = self.inner.lock().await;
-        if l.is_offline().await {
+        if self.is_offline().await {
             l.discard(conn).await;
             return;
         }
@@ -69,60 +74,38 @@ impl NodePipeLine {
             l.eliminate(1).await;
         }
     }
-    async fn discard(self: &Arc<Self>, conn:P2MConn) {
-        self.inner.lock().await.discard(conn).await;
-    }
-    async fn takeup(self: &Arc<Self>, conn:P2MConn) {
-        let mut l = self.inner.lock().await;
-        if !l.is_offline().await {
-            l.takeup(conn).await;
-            return;
-        } else {
-            conn.quit();
-        }
-    }
-    pub async fn offline(self: &Arc<Self>) {
-        self.inner.lock().await.offline().await
-  
-    }
     pub async fn reonline(self: &Arc<Self>) -> BackendResult<usize>{
-        let mut conn_list = self.grow(self.cfg.min_conns_limit).await;
-        let l_size = conn_list.len();
-        if l_size == 0 {
-            return Err(BackendError::PoolErrConnGrowFailed(self.cfg.node_id.clone()));
+        if self.is_quit().await {
+            return Err(BackendError::InnerErrOfflineOrQuit);
         }
-        self.inner.lock().await.reonline_with(&mut conn_list).await
+        let mut l_size: usize = 0;
+        if self.is_offline().await {
+            let mut conn_list = grow(&self, self.cfg.min_conns_limit).await;
+            l_size = conn_list.len();
+            if l_size == 0 {
+                return Err(BackendError::PoolErrConnGrowFailed(self.cfg.node_id.clone()));
+            }
+            self.inner.lock().await.reonline_with(&mut conn_list).await;
+            self.offline.store(false, Ordering::Relaxed);
+        }
+        Ok(l_size)
    }
+   pub async fn offline(self: &Arc<Self>) -> BackendResult<usize> {
+    self.offline.store(true, Ordering::Relaxed);
+    self.inner.lock().await.eliminate_all().await
+}
    pub async fn is_offline(self: &Arc<Self>) -> bool {
-        self.inner.lock().await.is_offline().await
+         self.offline.load(Ordering::Relaxed) | self.quit.load(Ordering::Relaxed)
    }
    pub async fn is_quit(self: &Arc<Self>) -> bool {
-    self.inner.lock().await.is_quit().await
+        self.quit.load(Ordering::Relaxed)
 }
-   pub async fn quit(self: &Arc<Self>) {
-        self.inner.lock().await.quit().await
+   pub async fn quit(self: &Arc<Self>) -> BackendResult<usize> {
+        self.quit.store(true, Ordering::Relaxed);
+        self.offline.store(false, Ordering::Relaxed);
+        self.inner.lock().await.eliminate_all().await
     }
-    async fn grow(self: &Arc<Self>, size:u16)  ->  LinkedList<P2MConn> {   
-            let mut conns: LinkedList<P2MConn> = LinkedList::new();
-            let mut tasks: Vec<JoinHandle<BackendResult<P2MConn>>> = Vec::new();
-            for _ in 0..size {
-               let user =  self.cfg.mysql_user.clone();
-               let pwd =  self.cfg.mysql_pwd.clone();
-               let addr = self.cfg.mysql_addr.clone();
-               let c_id = self.cfg.cluster_id.clone();
-               let n_id =  self.cfg.node_id.clone();
-                tasks.push(task::spawn(async move {
-                    create_conn(&user, &pwd, &addr, &c_id, &n_id).await
-                }));
-            }
-           for t in  tasks {
-               match t.await {
-                   Ok(c) => conns.push_back(c),
-                   e => info!("create new mysql conn failed: {:?}", e),
-               }
-           }
-           conns
-    }
+
 async fn loop_check(self: &Arc<Self>) { 
         let self_shared = self.clone();  
         task::spawn(async move {
@@ -137,6 +120,7 @@ async fn loop_check(self: &Arc<Self>) {
         });
     }
 }
+#[allow(unused_must_use)]
 async fn health_check(receiver: &Arc<NodePipeLine>) {
         let self_shared = receiver.clone();  
         task::spawn(async move {
@@ -151,16 +135,14 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                             ping_tick += 1;
                             let p_r = c.ping().await;
                             if p_r.is_ok() {
-                                self_shared.recycle(c).await;
-                                if self_shared.is_offline().await {
+                                   self_shared.recycle(c).await;
                                    let rc = self_shared.reonline().await;
                                    info!("health_check, ping, reonline: {:?}", rc);
-                                }
                                 return;
                             }
                             task::sleep(Duration::from_secs(self_shared.cfg.ping_retry_interval)).await;
                         }
-                        self_shared.discard(c).await;
+                        discard(&self_shared, c).await;
                  } 
                  //2. reconnect
                 let mut reconnect_tick:u8 = 0;
@@ -172,11 +154,9 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                                  &self_shared.cfg.mysql_addr, 
                                 &self_shared.cfg.cluster_id, 
                                 &self_shared.cfg.node_id).await {
-                                   self_shared.takeup(c).await;
-                                    if self_shared.is_offline().await {
-                                        let rc = self_shared.reonline().await;
-                                        info!("health_check, reconnect, reonline: {:?}", rc);
-                                     }
+                                   takeup(&self_shared, c).await;
+                                    let rc = self_shared.reonline().await;
+                                     info!("health_check, reconnect, reonline: {:?}", rc); 
                                     return;
                          } 
                         task::sleep(Duration::from_secs(self_shared.cfg.reconnect_retry_interval)).await;
@@ -186,13 +166,16 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
 }
 #[allow(unused_must_use)]
 async fn shrink_or_quit_check(receiver: &Arc<NodePipeLine>) -> bool {
+    if receiver.is_quit().await {
+        return true;
+    }
     let mut l = receiver.inner.lock().await;
     let decision = l.whether_to_start_shrink(receiver.cfg.idle_time_to_shrink, receiver.cfg.min_conns_limit, receiver.cfg.shrink_count).await;
     if !decision.0 {
-        return l.quit;
+        return  false;
     }
     l.eliminate(decision.1).await;  
-    l.quit
+    false
 }
 async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> BackendResult<P2MConn> {
     //1. tcp::connect to peer mysql . 
@@ -210,4 +193,37 @@ async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> Backe
     con_wrap.handshake().await?;
     //return conn or error
     Ok(con_wrap)
+}
+
+async fn grow(receiver: &Arc<NodePipeLine>, size:u16)  ->  LinkedList<P2MConn> {   
+    let mut conns: LinkedList<P2MConn> = LinkedList::new();
+    let mut tasks: Vec<JoinHandle<BackendResult<P2MConn>>> = Vec::new();
+    for _ in 0..size {
+       let user =  receiver.cfg.mysql_user.clone();
+       let pwd =  receiver.cfg.mysql_pwd.clone();
+       let addr = receiver.cfg.mysql_addr.clone();
+       let c_id = receiver.cfg.cluster_id.clone();
+       let n_id =  receiver.cfg.node_id.clone();
+        tasks.push(task::spawn(async move {
+            create_conn(&user, &pwd, &addr, &c_id, &n_id).await
+        }));
+    }
+   for t in  tasks {
+       match t.await {
+           Ok(c) => conns.push_back(c),
+           e => info!("create new mysql conn failed: {:?}", e),
+       }
+   }
+   conns
+}
+
+async fn discard(receiver: &Arc<NodePipeLine>, conn:P2MConn) {
+    receiver.inner.lock().await.discard(conn).await;
+}
+async fn takeup(receiver: &Arc<NodePipeLine>, conn:P2MConn) {
+    if !receiver.is_offline().await {
+        receiver.inner.lock().await.takeup(conn).await;
+    } else {
+        conn.quit();
+    }
 }
