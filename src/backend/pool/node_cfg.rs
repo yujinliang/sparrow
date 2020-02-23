@@ -11,8 +11,8 @@ pub struct NodeCfg {
         pub shrink_count:u16,
         pub idle_time_to_shrink:u64,
         pub time_to_check_interval:u64,
-        ping_retry_count: u8 ,
-        ping_retry_min_interval: u16 , //time unit: second 
-        reconnect_retry_count: u8 ,
-        reconnect_retry_min_interval:u16 ,//time unit: second 
+        pub ping_retry_count: u8 ,
+        pub ping_retry_interval: u64 , //time unit: second 
+        pub reconnect_retry_count: u8 ,
+        pub reconnect_retry_interval:u64 ,//time unit: second 
 }

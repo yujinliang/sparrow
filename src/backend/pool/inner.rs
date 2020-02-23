@@ -61,7 +61,7 @@ impl InnerLine {
     }
     #[inline]
     #[allow(unused_must_use)]
-    pub async fn discard_one(&mut self, conn:P2MConn) {
+    pub async fn discard(&mut self, conn:P2MConn) {
         conn.quit();
         self.total_conn_count -= 1;
         self.lend_conn_count -= 1;
@@ -72,9 +72,14 @@ impl InnerLine {
         self.lend_conn_count -= 1;
     }
     #[inline]
-    pub async fn takeup_new_conn(&mut self, conns:&mut LinkedList<P2MConn> ) {
+    pub async fn takeup_batch(&mut self, conns:&mut LinkedList<P2MConn> ) {
         self.total_conn_count += conns.len() as u64;
         self.cache.append(conns);
+    }
+    #[inline]
+    pub async fn takeup(&mut self, conn:P2MConn) {
+        self.total_conn_count += 1;
+        self.cache.push_back(conn)
     }
     #[inline]
     pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> ) -> BackendResult<usize> {
@@ -91,6 +96,9 @@ impl InnerLine {
         Ok(c_size)
     }
     pub async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
+        if self.quit {
+            return (false, 0);
+        }
         let cache_size = self.get_cache_size().await;
         if cache_size <= min_conns_limit as u64 {
             return (false, 0);
@@ -105,6 +113,10 @@ impl InnerLine {
     #[inline]
     pub async fn is_offline(&self) -> bool {
          self.offline || self.quit
+    }
+    #[inline]
+    pub async fn is_quit(&self) -> bool {
+         self.quit
     }
     #[inline]
     #[allow(unused_must_use)]
