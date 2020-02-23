@@ -29,7 +29,7 @@ impl InnerLine {
         self. cache.len() as u64
     }
     pub async fn update_time_stamp(&mut self) {
-        self.recent_request_time = 0;
+        self.recent_request_time = 0;//now
     }
     #[inline]
     pub async fn lend_conn(&mut self) -> BackendResult<P2MConn> {  
@@ -73,18 +73,22 @@ impl InnerLine {
     }
     #[inline]
     pub async fn takeup_new_conn(&mut self, conns:&mut LinkedList<P2MConn> ) {
-        self.cache.append(conns);
         self.total_conn_count += conns.len() as u64;
+        self.cache.append(conns);
     }
     #[inline]
-    pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> ) {
-        self.recent_request_time = 0;
+    pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> ) -> BackendResult<usize> {
+        if self.quit {
+            return Err(BackendError::InnerErrOfflineOrQuit);
+        }
+        let c_size =  conns.len();
+        self.recent_request_time = 0;//now
         self.total_conn_count = 0;
         self.lend_conn_count = 0;
+        self.total_conn_count += c_size as u64;
         self.cache.append(conns);
-        self.total_conn_count += conns.len() as u64;
-        self.quit = false;
         self.offline = false;
+        Ok(c_size)
     }
     pub async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
         let cache_size = self.get_cache_size().await;

@@ -73,14 +73,13 @@ impl NodePipeLine {
         self.inner.lock().await.offline().await
   
     }
-    pub async fn reonline(self: &Arc<Self>) -> BackendResult<u16>{
+    pub async fn reonline(self: &Arc<Self>) -> BackendResult<usize>{
         let mut conn_list = self.grow(self.cfg.min_conns_limit).await;
         let l_size = conn_list.len();
         if l_size == 0 {
             return Err(BackendError::PoolErrConnGrowFailed(self.cfg.node_id.clone()));
         }
-        self.inner.lock().await.reonline_with(&mut conn_list).await;
-        Ok(l_size as u16)
+        self.inner.lock().await.reonline_with(&mut conn_list).await
    }
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
