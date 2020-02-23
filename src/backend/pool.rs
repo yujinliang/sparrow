@@ -5,6 +5,7 @@ use super::error::{BackendResult, BackendError};
 use async_std::sync::Arc;
 pub mod inner;
 pub mod node;
+pub mod checker;
 pub mod node_cfg;
 
 struct P2MConnPool {
