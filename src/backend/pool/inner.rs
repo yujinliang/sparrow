@@ -7,8 +7,7 @@ use std::collections::LinkedList;
 pub struct InnerLine {
     cache:  LinkedList<P2MConn>, //pop/push
     recent_request_time:u64,
-    pub total_conn_count: u64,
-    lend_conn_count:u64,
+    total_conn_count: u64,
 }
 impl InnerLine {
     #[inline]
@@ -17,23 +16,22 @@ impl InnerLine {
             cache:  LinkedList::new(), 
             recent_request_time:0,
             total_conn_count: 0,
-            lend_conn_count:0,
         }
     }
     #[inline]
     pub async fn get_cache_size(&self) -> u64 {
         self. cache.len() as u64
     }
+    #[inline]
+    pub async fn get_total_conn_count(&self) -> u64 {
+        self. total_conn_count
+    }
     pub async fn update_time_stamp(&mut self) {
         self.recent_request_time = 0;//now
     }
     #[inline]
     pub async fn lend_conn(&mut self) -> BackendResult<P2MConn> {  
-       let rc =  self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty});
-       if rc.is_ok() {
-            self.lend_conn_count += 1;
-       }
-       rc
+        self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})
     }
     #[inline]
     #[allow(unused_must_use)]
@@ -50,8 +48,8 @@ impl InnerLine {
         let c_size = self.cache.len();
         for _ in 0..c_size {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
+            self.total_conn_count -= 1;
         }
-        self.total_conn_count = 0;
         Ok(c_size)
     }
     #[inline]
@@ -59,12 +57,10 @@ impl InnerLine {
     pub async fn discard(&mut self, conn:P2MConn) {
         conn.quit();
         self.total_conn_count -= 1;
-        self.lend_conn_count -= 1;
     }
     #[inline]
     pub async fn send_back(&mut self, conn:P2MConn) {
         self.cache.push_back(conn);
-        self.lend_conn_count -= 1;
     }
     #[inline]
     pub async fn takeup_batch(&mut self, conns:&mut LinkedList<P2MConn> ) {
@@ -75,15 +71,6 @@ impl InnerLine {
     pub async fn takeup(&mut self, conn:P2MConn) {
         self.total_conn_count += 1;
         self.cache.push_back(conn)
-    }
-    #[inline]
-    pub async fn reonline_with(&mut self, conns:&mut LinkedList<P2MConn> )  {
-        let c_size =  conns.len();
-        self.recent_request_time = 0;//now
-        self.total_conn_count = 0;
-        self.lend_conn_count = 0;
-        self.total_conn_count += c_size as u64;
-        self.cache.append(conns);
     }
     pub async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
         let cache_size = self.get_cache_size().await;
