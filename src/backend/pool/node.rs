@@ -41,16 +41,7 @@ impl NodePipeLine {
        if self.is_offline().await { 
            return Err(BackendError::InnerErrOfflineOrQuit);
        }
-       let rc = self.inner.lock().await.lend_conn().await;
-       if rc.is_ok() {
-            rc
-       } else if self.inner.lock().await.get_total_count().await < self.cfg.max_conns_limit {
-                 let mut conn_list = grow(&self, self.cfg.grow_count).await;
-                 self.inner.lock().await.takeup_batch(&mut conn_list).await;
-                 self.inner.lock().await.lend_conn().await
-        } else  {
-                 Err(BackendError::InnerErrPipeEmpty)
-        }
+        self.inner.lock().await.lend_with(self.cfg.max_conns_limit, grow(&self, self.cfg.grow_count)).await
     }
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
@@ -58,24 +49,15 @@ impl NodePipeLine {
             self.inner.lock().await.discard(conn).await;
             return;
         }
-        self.inner.lock().await.send_back(conn).await;
-        let total_c = self.inner.lock().await.get_total_count().await;
-        if  total_c > self.cfg.max_conns_limit {
-            self.inner.lock().await.eliminate(total_c - self.cfg.max_conns_limit).await;
-        }
+        self.inner.lock().await.recycle(self.cfg.max_conns_limit,conn).await;
     }
-    pub async fn reonline(self: &Arc<Self>) -> BackendResult<()>{
+    pub async fn reonline(self: &Arc<Self>) -> BackendResult<()> {
         if self.is_quit().await {
             return Err(BackendError::InnerErrOfflineOrQuit);
         }
         if self.is_offline().await {
-                let mut conns = grow(&self, self.cfg.min_conns_limit).await;
-                if conns.is_empty() {
-                    return Err(BackendError::PoolErrConnGrowFailed(self.cfg.node_id.clone()));
-                }
-                self.inner.lock().await.update_time_stamp().await;
-                self.inner.lock().await.takeup_batch(&mut conns).await;
-                self.offline.store(false, Ordering::Relaxed); 
+            self.inner.lock().await.grow_with(&self.cfg.node_id, grow(&self, self.cfg.grow_count)).await?;
+            self.offline.store(false, Ordering::Relaxed); 
          }  
         Ok(())
    }
