@@ -19,7 +19,6 @@ pub struct NodePipeLine {
 
 impl NodePipeLine {
     #[inline]
-    #[allow(clippy::too_many_arguments)]
     pub async fn new( cfg: NodeCfg) -> Arc<Self> {
         Arc::new(NodePipeLine{
             inner: Mutex::new(InnerLine::new().await),
@@ -28,6 +27,7 @@ impl NodePipeLine {
             quit: AtomicBool::new(false),
         })
     }
+    #[inline]
     pub async fn init(self: &Arc<Self>)  {
         let self_shared = self.clone();
         task::spawn(async move {
@@ -98,7 +98,7 @@ impl NodePipeLine {
 }
    pub async fn quit(self: &Arc<Self>) -> BackendResult<usize> {
         self.quit.store(true, Ordering::Relaxed);
-        self.offline.store(false, Ordering::Relaxed);
+        self.offline.store(true, Ordering::Relaxed);
         self.inner.lock().await.eliminate_all().await
     }
 

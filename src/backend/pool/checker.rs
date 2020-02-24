@@ -40,7 +40,7 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                                    self_shared.recycle(c).await;
                                    let rc = self_shared.reonline().await;
                                    info!("health_check, ping, reonline: {:?}", rc);
-                                return;
+                                   return;
                             }
                             task::sleep(Duration::from_secs(self_shared.cfg.ping_retry_interval)).await;
                         }
@@ -56,9 +56,9 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                                  &self_shared.cfg.mysql_addr, 
                                 &self_shared.cfg.cluster_id, 
                                 &self_shared.cfg.node_id).await {
-                                   takeup(&self_shared, c).await;
-                                    let rc = self_shared.reonline().await;
+                                     let rc = self_shared.reonline().await;
                                      info!("health_check, reconnect, reonline: {:?}", rc); 
+                                     takeup(&self_shared, c).await;
                                     return;
                          } 
                         task::sleep(Duration::from_secs(self_shared.cfg.reconnect_retry_interval)).await;

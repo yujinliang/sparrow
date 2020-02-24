@@ -41,7 +41,6 @@ impl InnerLine {
         for _ in 0..count {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
             self.total_conn_count -= 1;
-            self.lend_conn_count -= 1;
         }
         Ok(count)
     }
@@ -51,9 +50,8 @@ impl InnerLine {
         let c_size = self.cache.len();
         for _ in 0..c_size {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
-            self.total_conn_count -= 1;
-            self.lend_conn_count -= 1;
         }
+        self.total_conn_count = 0;
         Ok(c_size)
     }
     #[inline]
