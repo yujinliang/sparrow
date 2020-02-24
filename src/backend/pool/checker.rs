@@ -76,7 +76,7 @@ async fn shrink_or_quit_check(receiver: &Arc<NodePipeLine>) -> bool {
     if !decision.0 {
         return  false;
     }
-    l.eliminate(decision.1).await;  
+    l.eliminate(decision.1 as u64).await;  
     false
 }
 async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> BackendResult<P2MConn> {

@@ -36,27 +36,21 @@ impl NodePipeLine {
         });
         loop_check(&self).await;
     }
+    //fast fail!!!
     pub async fn get_conn(self: &Arc<Self>) -> BackendResult<P2MConn> {
        if self.is_offline().await { 
            return Err(BackendError::InnerErrOfflineOrQuit);
        }
-       let mut l = self.inner.lock().await;
-       l.update_time_stamp().await;
-       if l.get_cache_size().await > self.cfg.min_conns_limit.into() {
-            l.lend_conn().await
-       } else if l.get_total_conn_count().await < self.cfg.max_conns_limit {
-                let grow_c = if (l.get_total_conn_count().await + self.cfg.grow_count as u64) <= self.cfg.max_conns_limit {
-                    self.cfg.grow_count
-                } else {
-                    (l.get_total_conn_count().await + self.cfg.grow_count as u64 - self.cfg.max_conns_limit) as u16
-                };
-                 let mut conn_list = grow(&self, grow_c).await;
-                 l.takeup_batch(&mut conn_list).await;
-                 l.lend_conn().await
+       let rc = self.inner.lock().await.lend_conn().await;
+       if rc.is_ok() {
+            rc
+       } else if self.inner.lock().await.get_total_count().await < self.cfg.max_conns_limit {
+                 let mut conn_list = grow(&self, self.cfg.grow_count).await;
+                 self.inner.lock().await.takeup_batch(&mut conn_list).await;
+                 self.inner.lock().await.lend_conn().await
         } else  {
                  Err(BackendError::InnerErrPipeEmpty)
-                 //fast fail!
-            }
+        }
     }
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
@@ -64,10 +58,10 @@ impl NodePipeLine {
             self.inner.lock().await.discard(conn).await;
             return;
         }
-        let mut l = self.inner.lock().await;
-        l.send_back(conn).await;
-        if l.get_cache_size().await > self.cfg.max_conns_limit {
-            l.eliminate(1).await;
+        self.inner.lock().await.send_back(conn).await;
+        let total_c = self.inner.lock().await.get_total_count().await;
+        if  total_c > self.cfg.max_conns_limit {
+            self.inner.lock().await.eliminate(total_c - self.cfg.max_conns_limit).await;
         }
     }
     pub async fn reonline(self: &Arc<Self>) -> BackendResult<()>{
@@ -79,9 +73,8 @@ impl NodePipeLine {
                 if conns.is_empty() {
                     return Err(BackendError::PoolErrConnGrowFailed(self.cfg.node_id.clone()));
                 }
-                let mut l = self.inner.lock().await;
-                l.update_time_stamp().await;
-                l.takeup_batch(&mut conns).await;
+                self.inner.lock().await.update_time_stamp().await;
+                self.inner.lock().await.takeup_batch(&mut conns).await;
                 self.offline.store(false, Ordering::Relaxed); 
          }  
         Ok(())
