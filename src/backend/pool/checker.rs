@@ -13,11 +13,11 @@ pub async fn loop_check(receiver: &Arc<NodePipeLine>) {
     let self_shared = receiver.clone();  
     task::spawn(async move {
         loop {
-                 if !shrink_or_quit_check(&self_shared).await {
-                         health_check(&self_shared).await;
-                 } else {
-                     return;
-                 }
+                if self_shared.is_quit().await {
+                    return;
+                }
+                shrink_check(&self_shared).await ;
+                health_check(&self_shared).await;
                 task::sleep(Duration::from_secs(self_shared.cfg.time_to_check_interval)).await;
         }
     });
@@ -67,17 +67,11 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
         });
 }
 #[allow(unused_must_use)]
-async fn shrink_or_quit_check(receiver: &Arc<NodePipeLine>) -> bool {
+async fn shrink_check(receiver: &Arc<NodePipeLine>) {
     if receiver.is_quit().await {
-        return true;
+        return; 
     }
-    let mut l = receiver.inner.lock().await;
-    let decision = l.whether_to_start_shrink(receiver.cfg.idle_time_to_shrink, receiver.cfg.min_conns_limit, receiver.cfg.shrink_count).await;
-    if !decision.0 {
-        return  false;
-    }
-    l.eliminate(decision.1 as u64).await;  
-    false
+    receiver.inner.lock().await.shrink(receiver.cfg.idle_time_to_shrink, receiver.cfg.min_conns_limit, receiver.cfg.shrink_count).await;
 }
 async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> BackendResult<P2MConn> {
     //1. tcp::connect to peer mysql . 

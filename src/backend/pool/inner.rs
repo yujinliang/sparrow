@@ -47,9 +47,17 @@ impl InnerLine {
                     self.takeup_batch(&mut conns).await;
                     Ok(())
     }
+    #[allow(unused_must_use)]
+    pub async fn shrink(&mut self, _idle_time:u64, min:u16, shrink_c:u16) {
+            if self.total_conn_count <= min as u64 {
+                return;
+            }
+            //Todo: design a shrink algorithm
+             self. eliminate(shrink_c as u64).await; 
+    }
     #[inline]
     #[allow(unused_must_use)]
-    pub async fn eliminate(&mut self, count:u64) -> BackendResult<u64> {
+     async fn eliminate(&mut self, count:u64) -> BackendResult<u64> {
         for _ in 0..count {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
             self.total_conn_count -= 1;
@@ -89,17 +97,6 @@ impl InnerLine {
     pub async fn takeup(&mut self, conn:P2MConn) {
         self.total_conn_count += 1;
         self.cache.push_back(conn)
-    }
-    pub async fn whether_to_start_shrink(&self,  _time_to_shrink: u64, min_conns_limit:u16, shrink_count:u16) -> (bool, u16 ){
-        if self.total_conn_count <= min_conns_limit as u64 {
-            return (false, 0);
-        }
-        let shrink_count = if (self.total_conn_count - shrink_count as u64 ) <= min_conns_limit as u64{
-            min_conns_limit - self.total_conn_count as u16 + shrink_count 
-        } else  {
-            shrink_count 
-        };
-        (false, shrink_count)
     }
 
 }
