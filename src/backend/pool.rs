@@ -35,9 +35,6 @@ impl P2MConnPool {
             } else {
                 self.node_conns.get(&nodes[0]).ok_or_else(|| { BackendError::PoolErrNodeNotFound(nodes[0].to_string())})?
             };
-            if node_line.is_offline().await {
-                return Err(BackendError::InnerErrOfflineOrQuit);
-            }
             v.push_back(node_line.get_conn().await?);
         }
         Ok(v)     

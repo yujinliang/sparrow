@@ -37,14 +37,14 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                             ping_tick += 1;
                             let p_r = c.ping().await;
                             if p_r.is_ok() {
-                                   self_shared.recycle(c).await;
                                    let rc = self_shared.reonline().await;
                                    info!("health_check, ping, reonline: {:?}", rc);
+                                   self_shared.recycle(c).await;
                                    return;
                             }
                             task::sleep(Duration::from_secs(self_shared.cfg.ping_retry_interval)).await;
                         }
-                        discard(&self_shared, c).await;
+                        self_shared.discard(c).await;
                  } 
                  //2. reconnect
                 let mut reconnect_tick:u8 = 0;
@@ -58,7 +58,7 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                                 &self_shared.cfg.node_id).await {
                                      let rc = self_shared.reonline().await;
                                      info!("health_check, reconnect, reonline: {:?}", rc); 
-                                     takeup(&self_shared, c).await;
+                                     self_shared.takeup(c).await;
                                     return;
                          } 
                         task::sleep(Duration::from_secs(self_shared.cfg.reconnect_retry_interval)).await;
@@ -68,9 +68,6 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
 }
 #[allow(unused_must_use)]
 async fn shrink_check(receiver: &Arc<NodePipeLine>) {
-    if receiver.is_quit().await {
-        return; 
-    }
     receiver.inner.lock().await.shrink(receiver.cfg.idle_time_to_shrink, receiver.cfg.min_conns_limit, receiver.cfg.shrink_count).await;
 }
 async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> BackendResult<P2MConn> {
@@ -113,13 +110,3 @@ pub async fn grow(receiver: &Arc<NodePipeLine>, size:u16)  ->  LinkedList<P2MCon
    conns
 }
 
-async fn discard(receiver: &Arc<NodePipeLine>, conn:P2MConn) {
-    receiver.inner.lock().await.discard(conn).await;
-}
-async fn takeup(receiver: &Arc<NodePipeLine>, conn:P2MConn) {
-    if !receiver.is_offline().await {
-        receiver.inner.lock().await.takeup(conn).await;
-    } else {
-        conn.quit();
-    }
-}

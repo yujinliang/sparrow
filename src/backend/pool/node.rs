@@ -3,16 +3,13 @@ use async_std::sync::{Mutex, Arc};
 use super::inner::InnerLine;
 use super::node_cfg::NodeCfg;
 use crate::backend::conn::P2MConn;
-use super::{BackendError, BackendResult};
-use std::sync::atomic::{AtomicBool, Ordering}; //should async???
+use super::BackendResult;
 use super::checker::*;
 
 #[derive(Debug)]
 pub struct NodePipeLine {
         //dynamic data
         pub inner: Mutex<InnerLine>,
-        offline:AtomicBool, 
-        quit:AtomicBool,
         //static config data 
         pub cfg: NodeCfg,
 }
@@ -23,8 +20,6 @@ impl NodePipeLine {
         Arc::new(NodePipeLine{
             inner: Mutex::new(InnerLine::new().await),
             cfg,
-            offline: AtomicBool::new(true),
-            quit: AtomicBool::new(false),
         })
     }
     #[inline]
@@ -37,44 +32,41 @@ impl NodePipeLine {
         loop_check(&self).await;
     }
     //fast fail!!!
+    #[inline]
     pub async fn get_conn(self: &Arc<Self>) -> BackendResult<P2MConn> {
-       if self.is_offline().await { 
-           return Err(BackendError::InnerErrOfflineOrQuit);
-       }
         self.inner.lock().await.lend_with(self.cfg.max_conns_limit, grow(&self, self.cfg.grow_count)).await
     }
+    #[inline]
     #[allow(unused_must_use)]
     pub async fn recycle(self: &Arc<Self>, conn:P2MConn) {
-        if self.is_offline().await {
-            self.inner.lock().await.discard(conn).await;
-            return;
-        }
         self.inner.lock().await.recycle(self.cfg.max_conns_limit,conn).await;
     }
+    #[inline]
     pub async fn reonline(self: &Arc<Self>) -> BackendResult<()> {
-        if self.is_quit().await {
-            return Err(BackendError::InnerErrOfflineOrQuit);
-        }
-        if self.is_offline().await {
-            self.inner.lock().await.grow_with(&self.cfg.node_id, grow(&self, self.cfg.grow_count)).await?;
-            self.offline.store(false, Ordering::Relaxed); 
-         }  
-        Ok(())
+        self.inner.lock().await.grow_with(&self.cfg.node_id, grow(&self, self.cfg.grow_count)).await
    }
+   #[inline]
    pub async fn offline(self: &Arc<Self>) -> BackendResult<usize> {
-    self.offline.store(true, Ordering::Relaxed);
-    self.inner.lock().await.eliminate_all().await
-}
-   pub async fn is_offline(self: &Arc<Self>) -> bool {
-         self.offline.load(Ordering::Relaxed) | self.quit.load(Ordering::Relaxed)
-   }
-   pub async fn is_quit(self: &Arc<Self>) -> bool {
-        self.quit.load(Ordering::Relaxed)
-}
-   pub async fn quit(self: &Arc<Self>) -> BackendResult<usize> {
-        self.quit.store(true, Ordering::Relaxed);
-        self.offline.store(true, Ordering::Relaxed);
-        self.inner.lock().await.eliminate_all().await
+        self.inner.lock().await.offline().await
     }
-
+    #[inline]
+   pub async fn is_offline(self: &Arc<Self>) -> bool {
+        self.inner.lock().await.is_offline().await
+   }
+   #[inline]
+   pub async fn is_quit(self: &Arc<Self>) -> bool {
+        self.inner.lock().await.is_quit().await
+    }
+    #[inline]
+   pub async fn quit(self: &Arc<Self>) -> BackendResult<usize> {
+        self.inner.lock().await.quit().await
+    }
+    #[inline]
+    pub async fn discard(self: &Arc<Self>, conn:P2MConn) {
+        self.inner.lock().await.discard(conn).await
+    }
+    #[inline]
+    pub async fn takeup(self: &Arc<Self>, conn:P2MConn) {
+        self.inner.lock().await.takeup(conn).await; 
+    }
 }
