@@ -7,6 +7,7 @@ pub type BackendResult<T> = std::result::Result<T, BackendError>;
 pub enum BackendError {
     InnerErrPipeEmpty,
     InnerErrOfflineOrQuit,
+    InnerErrGreaterThenMaxConnCount,
     PoolErrClusterIdNotFound(String),
     PoolErrNodeNotFound(String),
     PoolErrConnGrowFailed(String),
@@ -34,6 +35,7 @@ impl std::error::Error for BackendError {
             BackendError::InnerErrOfflineOrQuit => None,
             BackendError::PoolErrConnGrowFailed(..) => None,
             BackendError::PoolErrConnGrowGiveup(..) => None,
+            BackendError::InnerErrGreaterThenMaxConnCount => None,
             BackendError::IO(e) => e.source(),
             BackendError::Mysql(e) => e.source(),
         }
@@ -48,6 +50,7 @@ impl std::fmt::Display for BackendError {
                 BackendError::InnerErrOfflineOrQuit => write!(f, "node offline or quit!"),
                 BackendError::PoolErrConnGrowFailed(id) => write!(f, "node conn grow failed! node_id: {:?}", id),
                 BackendError::PoolErrConnGrowGiveup(id) => write!(f, "node: {:?} give up grow!", id),
+                BackendError::InnerErrGreaterThenMaxConnCount =>  write!(f, "total conn count >= max conn limit!"),
                 BackendError::IO(e) => e.fmt(f),
                 BackendError::Mysql(e) => e.fmt(f),
             }

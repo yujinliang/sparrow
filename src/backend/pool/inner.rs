@@ -41,6 +41,14 @@ impl InnerLine {
         self.clean_cache().await
     }
     #[inline]
+    pub async fn offline_where(&mut self, max:u64) -> BackendResult<usize> {
+        if self.total_conn_count >= max {
+            return Err(BackendError::InnerErrGreaterThenMaxConnCount);
+        }
+        self.offline = true;
+        self.clean_cache().await
+    }
+    #[inline]
     pub async fn quit(&mut self) -> BackendResult<usize> {
         self.quit = true;
         self.offline = true;
@@ -65,6 +73,7 @@ impl InnerLine {
          }
     }
     #[inline]
+    #[allow(unused_must_use)]
     pub async fn reonline_with<F>(&mut self, node_id:&str, grow: F) -> BackendResult<()> 
                                 where F: Future<Output = LinkedList<P2MConn>> {
                 if self.is_quit().await {
@@ -78,6 +87,7 @@ impl InnerLine {
                         return Err(BackendError::PoolErrConnGrowFailed(node_id.to_string()));
                 }
                 self.update_time_stamp().await;
+                self.clean_cache().await;
                 self.takeup_batch(&mut conns).await;
                 Ok(())
     }

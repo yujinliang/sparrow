@@ -50,6 +50,10 @@ impl NodePipeLine {
         self.inner.lock().await.offline().await
     }
     #[inline]
+    pub async fn offline_where(self: &Arc<Self>, max: u64) -> BackendResult<usize> {
+         self.inner.lock().await.offline_where(max).await
+     }
+    #[inline]
    pub async fn is_offline(self: &Arc<Self>) -> bool {
         self.inner.lock().await.is_offline().await
    }

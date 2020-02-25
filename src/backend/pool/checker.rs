@@ -59,13 +59,16 @@ async fn health_check(receiver: &Arc<NodePipeLine>) {
                          } 
                         task::sleep(Duration::from_secs(self_shared.cfg.reconnect_retry_interval)).await;
                 }
-                self_shared.offline().await;
+                 //Attention: if total conn count  == max conn limit , then give up  offline!!!
+                 //coz: can not get/create conn to  ping and reconnect to test peer node `s alive!!!
+                self_shared.offline_where(self_shared.cfg.max_conns_limit).await;
         });
 }
 #[allow(unused_must_use)]
 async fn shrink_check(receiver: &Arc<NodePipeLine>) {
     receiver.inner.lock().await.shrink(receiver.cfg.idle_time_to_shrink, receiver.cfg.min_conns_limit, receiver.cfg.shrink_count).await;
 }
+//Must be No Lock!!!
 async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> BackendResult<P2MConn> {
     //1. tcp::connect to peer mysql . 
     let tcp = TcpStream::connect(addr).await?;         
@@ -83,7 +86,7 @@ async fn create_conn( user:&str,pwd:&str,addr:&str,c_id:&str,n_id:&str) -> Backe
     //return conn or error
     Ok(con_wrap)
 }
-
+//Must be No Lock!!!
 pub async fn grow(receiver: &Arc<NodePipeLine>, size:u16)  ->  LinkedList<P2MConn> {   
     let mut conns: LinkedList<P2MConn> = LinkedList::new();
     let mut tasks: Vec<JoinHandle<BackendResult<P2MConn>>> = Vec::new();
