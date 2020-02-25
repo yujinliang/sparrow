@@ -10,6 +10,7 @@ pub enum BackendError {
     PoolErrClusterIdNotFound(String),
     PoolErrNodeNotFound(String),
     PoolErrConnGrowFailed(String),
+    PoolErrConnGrowGiveup(String),
     IO(async_std::io::Error),
     Mysql(MysqlError),
 }
@@ -32,6 +33,7 @@ impl std::error::Error for BackendError {
             BackendError::PoolErrNodeNotFound(..) => None,
             BackendError::InnerErrOfflineOrQuit => None,
             BackendError::PoolErrConnGrowFailed(..) => None,
+            BackendError::PoolErrConnGrowGiveup(..) => None,
             BackendError::IO(e) => e.source(),
             BackendError::Mysql(e) => e.source(),
         }
@@ -45,6 +47,7 @@ impl std::fmt::Display for BackendError {
                 BackendError::PoolErrNodeNotFound(id) => write!(f, "node: {:?}  not exist!", id),
                 BackendError::InnerErrOfflineOrQuit => write!(f, "node offline or quit!"),
                 BackendError::PoolErrConnGrowFailed(id) => write!(f, "node conn grow failed! node_id: {:?}", id),
+                BackendError::PoolErrConnGrowGiveup(id) => write!(f, "node: {:?} give up grow!", id),
                 BackendError::IO(e) => e.fmt(f),
                 BackendError::Mysql(e) => e.fmt(f),
             }

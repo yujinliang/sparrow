@@ -19,8 +19,8 @@ impl InnerLine {
             cache:  LinkedList::new(), 
             recent_request_time:0,
             total_conn_count: 0,
-            offline:true,
-            quit:true,
+            offline:false,
+            quit:false,
         }
     }
     #[inline]
@@ -38,17 +38,18 @@ impl InnerLine {
     #[inline]
     pub async fn offline(&mut self) -> BackendResult<usize> {
         self.offline = true;
-        self.eliminate_all().await
+        self.clean_cache().await
     }
+    #[inline]
     pub async fn quit(&mut self) -> BackendResult<usize> {
         self.quit = true;
         self.offline = true;
-        self.eliminate_all().await
+        self.clean_cache().await
     }
     #[inline]
     pub async fn lend_with<F>(&mut self, max:u64, grow:F) -> BackendResult<P2MConn>
                                 where F: Future<Output = LinkedList<P2MConn>> {  
-        if self.is_offline().await { 
+        if self.is_offline().await | self.is_quit().await { 
                 return Err(BackendError::InnerErrOfflineOrQuit);
         }
         self.update_time_stamp().await;
@@ -63,13 +64,14 @@ impl InnerLine {
                   Err(BackendError::InnerErrPipeEmpty)
          }
     }
-    pub async fn grow_with<F>(&mut self, node_id:&str, grow: F) -> BackendResult<()> 
+    #[inline]
+    pub async fn reonline_with<F>(&mut self, node_id:&str, grow: F) -> BackendResult<()> 
                                 where F: Future<Output = LinkedList<P2MConn>> {
                 if self.is_quit().await {
                         return Err(BackendError::InnerErrOfflineOrQuit);
                 }
-               if ! self.is_offline().await {
-                    return Err(BackendError::InnerErrOfflineOrQuit);
+               if !self.is_offline().await {
+                    return Err(BackendError::PoolErrConnGrowGiveup(node_id.to_string()));
                }
                 let mut conns = grow.await;
                  if conns.is_empty() {
@@ -79,6 +81,7 @@ impl InnerLine {
                 self.takeup_batch(&mut conns).await;
                 Ok(())
     }
+    #[inline]
     #[allow(unused_must_use)]
     pub async fn shrink(&mut self, _idle_time:u64, min:u16, shrink_c:u16) {
             if self.total_conn_count <= min as u64 {
@@ -90,7 +93,7 @@ impl InnerLine {
  
     #[inline]
     #[allow(unused_must_use)]
-    pub async fn eliminate_all(&mut self) -> BackendResult<usize> {
+    pub async fn clean_cache(&mut self) -> BackendResult<usize> {
         let c_size = self.cache.len();
         for _ in 0..c_size {
             self.cache.pop_front().ok_or_else(|| { BackendError::InnerErrPipeEmpty})?.quit();
@@ -107,7 +110,7 @@ impl InnerLine {
     #[inline]
     #[allow(unused_must_use)]
     pub async fn recycle(&mut self,max: u64,  conn:P2MConn) {
-        if self.is_offline().await {
+        if self.is_offline().await | self.is_quit().await {
             self.discard(conn).await;
             return;
         }
@@ -117,13 +120,17 @@ impl InnerLine {
         }
     }
     #[inline]
-    pub async fn takeup(&mut self, conn:P2MConn) {
+    #[allow(unused_must_use)]
+    pub async fn takeup(&mut self, max:u64, conn:P2MConn) {
         if self.is_offline().await | self.is_quit().await {
             conn.quit();
             return;
         }
         self.total_conn_count += 1;
-        self.cache.push_back(conn)
+        self.cache.push_back(conn);
+        if  self.total_conn_count > max {
+            self.eliminate( self.total_conn_count - max).await;
+        }
     }
     #[inline]
     async fn takeup_batch(&mut self, conns:&mut LinkedList<P2MConn> ) {

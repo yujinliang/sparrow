@@ -43,7 +43,7 @@ impl NodePipeLine {
     }
     #[inline]
     pub async fn reonline(self: &Arc<Self>) -> BackendResult<()> {
-        self.inner.lock().await.grow_with(&self.cfg.node_id, grow(&self, self.cfg.grow_count)).await
+        self.inner.lock().await.reonline_with(&self.cfg.node_id, grow(&self, self.cfg.grow_count)).await
    }
    #[inline]
    pub async fn offline(self: &Arc<Self>) -> BackendResult<usize> {
@@ -67,6 +67,6 @@ impl NodePipeLine {
     }
     #[inline]
     pub async fn takeup(self: &Arc<Self>, conn:P2MConn) {
-        self.inner.lock().await.takeup(conn).await; 
+        self.inner.lock().await.takeup(self.cfg.max_conns_limit, conn).await; 
     }
 }

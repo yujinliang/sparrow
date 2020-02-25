@@ -26,10 +26,6 @@ pub async fn loop_check(receiver: &Arc<NodePipeLine>) {
 async fn health_check(receiver: &Arc<NodePipeLine>) {
         let self_shared = receiver.clone();  
         task::spawn(async move {
-                //0. check if node is quited, if yes , then give up run.
-                if self_shared.is_quit().await {
-                    return; 
-                }
                 //1. ping
                 if let Ok(c) = self_shared.get_conn().await {
                         let mut ping_tick:u8 = 0;
