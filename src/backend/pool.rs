@@ -7,10 +7,11 @@ pub mod inner;
 pub mod node;
 pub mod checker;
 pub mod node_cfg;
+use dashmap::DashMap;
 
 struct P2MConnPool {
     //static const  relationship data
-        node_conns:HashMap<String, Arc<node::NodePipeLine>>,
+        node_conns:DashMap<String, Arc<node::NodePipeLine>>,
         cluster_id_node_ids: HashMap<String, Vec<String>>, //Attention: the index:0 is always master node id forever!
 }
 
@@ -53,7 +54,7 @@ impl P2MConnPool {
     }
     #[allow(unused_must_use)]
     pub async fn quit(&self) {
-        for (_,n) in self.node_conns.iter() {
+        for n in self.node_conns.iter() {
             n.quit().await;
         }
     }
