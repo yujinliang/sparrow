@@ -3,11 +3,11 @@ use super::conn::P2MConn;
 use std::collections::{HashMap, LinkedList};
 use super::error::{BackendResult, BackendError};
 use async_std::sync::Arc;
-pub mod inner;
-pub mod node;
-pub mod checker;
+pub mod node_mu;
+pub mod node_chan;
 pub mod node_cfg;
 use dashmap::DashMap;
+use node_mu::node;
 
 struct P2MConnPool {
     //static const  relationship data

@@ -7,7 +7,7 @@ use async_std::sync::Arc;
 use std::collections::LinkedList;
 use super::node::NodePipeLine;
 use crate::backend::conn::P2MConn;
-use super::{BackendResult};
+use crate::backend::error::BackendResult;
 
 pub async fn loop_check(receiver: &Arc<NodePipeLine>) { 
     let self_shared = receiver.clone();  

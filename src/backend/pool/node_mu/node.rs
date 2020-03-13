@@ -1,10 +1,10 @@
 use async_std::task;
 use async_std::sync::{Mutex, Arc};
 use super::inner::InnerLine;
-use super::node_cfg::NodeCfg;
+use crate::backend::pool::node_cfg::NodeCfg;
 use crate::backend::conn::P2MConn;
-use super::BackendResult;
-use super::checker::*;
+use crate::backend::error::BackendResult;
+use super::checker::{grow, loop_check};
 
 #[derive(Debug)]
 pub struct NodePipeLine {
