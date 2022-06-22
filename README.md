@@ -19,7 +19,8 @@
 ### 共同学习
 
 > * @ sparrow - 2019
-> * 作者: 心尘了
+> * 作者:  yujinliang
 > * 邮箱:  285779289@qq.com
->*  微信：justice_forever_123
-
+>*  微信： yujinliang-pure
+>*  csdn:  https://blog.csdn.net/htyu_0203_39
+>*  zhihu: https://www.zhihu.com/people/yujinliang-pure
